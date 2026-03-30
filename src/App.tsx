@@ -10,6 +10,13 @@ import { Shield, BookOpen, Sparkles, BarChart3 } from 'lucide-react';
 
 type Tool = 'game-chooser' | 'first-player' | 'turn-timer' | 'game-timer';
 
+const MeepleIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <circle cx="12" cy="5" r="3" />
+    <path d="M6 9.5C4 9.5 3.5 11.5 5 13L6.5 16L4 22H9.5V17.5H14.5V22H20L17.5 16L19 13C20.5 11.5 20 9.5 18 9.5H6Z" />
+  </svg>
+);
+
 function AppContent() {
   const { user, profile, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'library' | 'gameNiteTools' | 'admin'>('dashboard');
@@ -94,7 +101,15 @@ function AppContent() {
       <div className="sticky top-0 z-50 border-b border-slate-200 bg-white overflow-visible">
         <div className="max-w-7xl mx-auto px-4">
           <nav className="flex items-center justify-between">
-            <div className="flex space-x-1">
+            <div className="flex items-center space-x-8">
+              <div className="flex items-center space-x-2 py-4">
+                <MeepleIcon className="w-8 h-8 text-slate-900" />
+                <h1 className="text-2xl font-bold text-slate-900 font-display">
+                  Libre Ludorum
+                </h1>
+              </div>
+
+              <div className="flex space-x-1">
               <button
                 onClick={() => setActiveTab('dashboard')}
                 className={`relative flex items-center space-x-2 px-6 py-4 font-medium transition ${
@@ -137,30 +152,17 @@ function AppContent() {
                   {activeTab === 'admin' && woodenDisc('admin')}
                 </button>
               )}
+              </div>
             </div>
 
             {profile && (
-              <div className="flex items-center flex-shrink-0">
-                <button
-                  onClick={() => setIsProfileDrawerOpen(true)}
-                  className="flex items-center gap-2.5 px-4 py-2 border thin-rule rule-line hover:bg-slate-50 transition-colors"
-                >
-                  {profile.avatar_url ? (
-                    <img
-                      src={profile.avatar_url}
-                      alt={profile.username}
-                      className="w-7 h-7 rounded-full object-cover flex-shrink-0"
-                    />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-body text-slate-600 font-medium">
-                        {profile.username?.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                  )}
-                  <span className="text-sm font-body text-slate-900 hidden sm:inline">{profile.username}</span>
-                </button>
-              </div>
+              <button
+                onClick={() => setIsProfileDrawerOpen(true)}
+                className="flex items-center space-x-2 px-6 py-4 font-medium transition text-slate-600 hover:text-slate-900"
+              >
+                <MeepleIcon className="w-5 h-5" />
+                <span className="hidden sm:inline">{profile.username}</span>
+              </button>
             )}
           </nav>
         </div>
