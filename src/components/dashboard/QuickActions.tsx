@@ -7,67 +7,50 @@ interface QuickActionsProps {
 }
 
 export default function QuickActions({ onNavigateToGameNiteTools }: QuickActionsProps) {
+  const actions = [
+    {
+      tool: 'game-chooser' as Tool,
+      label: 'Game Picker',
+      Icon: Loader,
+      gradient: 'from-violet-500 to-purple-700',
+      shadow: '0 1px 0 inset rgba(255,255,255,0.25), 0 -1px 0 inset rgba(0,0,0,0.2), 0 4px 6px -1px rgba(109,40,217,0.5), 0 10px 24px -4px rgba(109,40,217,0.35), 0 2px 4px rgba(0,0,0,0.25)',
+      hoverShadow: '0 1px 0 inset rgba(255,255,255,0.25), 0 -1px 0 inset rgba(0,0,0,0.2), 0 6px 10px -1px rgba(109,40,217,0.6), 0 16px 32px -4px rgba(109,40,217,0.45), 0 4px 8px rgba(0,0,0,0.3)',
+    },
+    {
+      tool: 'first-player' as Tool,
+      label: 'Choose First Player',
+      Icon: Dice6,
+      gradient: 'from-pink-500 to-rose-700',
+      shadow: '0 1px 0 inset rgba(255,255,255,0.25), 0 -1px 0 inset rgba(0,0,0,0.2), 0 4px 6px -1px rgba(225,29,72,0.5), 0 10px 24px -4px rgba(225,29,72,0.35), 0 2px 4px rgba(0,0,0,0.25)',
+      hoverShadow: '0 1px 0 inset rgba(255,255,255,0.25), 0 -1px 0 inset rgba(0,0,0,0.2), 0 6px 10px -1px rgba(225,29,72,0.6), 0 16px 32px -4px rgba(225,29,72,0.45), 0 4px 8px rgba(0,0,0,0.3)',
+    },
+    {
+      tool: 'turn-timer' as Tool,
+      label: 'Turn Timer',
+      Icon: Timer,
+      gradient: 'from-sky-400 to-blue-600',
+      shadow: '0 1px 0 inset rgba(255,255,255,0.25), 0 -1px 0 inset rgba(0,0,0,0.2), 0 4px 6px -1px rgba(37,99,235,0.5), 0 10px 24px -4px rgba(37,99,235,0.35), 0 2px 4px rgba(0,0,0,0.25)',
+      hoverShadow: '0 1px 0 inset rgba(255,255,255,0.25), 0 -1px 0 inset rgba(0,0,0,0.2), 0 6px 10px -1px rgba(37,99,235,0.6), 0 16px 32px -4px rgba(37,99,235,0.45), 0 4px 8px rgba(0,0,0,0.3)',
+    },
+  ];
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {/* Game Chooser Shortcut */}
-      <button
-        onClick={() => onNavigateToGameNiteTools('game-chooser')}
-        className="group bg-white container-radius shadow-sm border border-container p-6 hover:shadow-md hover:border-purple-300 transition text-left"
-      >
-        <div className="flex items-start space-x-4">
-          <div className="p-3 bg-gradient-to-br from-purple-600 to-pink-600 container-radius group-hover:scale-110 transition-transform">
-            <Loader className="w-6 h-6 text-white" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-display font-light text-slate-900 mb-1 group-hover:text-purple-600 transition">
-              Choose a Game
-            </h3>
-            <p className="text-sm text-slate-600">
-              Spin the wheel to pick your next game
-            </p>
-          </div>
-        </div>
-      </button>
-
-      {/* First Player Chooser Shortcut */}
-      <button
-        onClick={() => onNavigateToGameNiteTools('first-player')}
-        className="group bg-white container-radius shadow-sm border border-container p-6 hover:shadow-md hover:border-purple-300 transition text-left"
-      >
-        <div className="flex items-start space-x-4">
-          <div className="p-3 bg-gradient-to-br from-purple-600 to-pink-600 container-radius group-hover:scale-110 transition-transform">
-            <Dice6 className="w-6 h-6 text-white" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-display font-light text-slate-900 mb-1 group-hover:text-purple-600 transition">
-              Choose First Player
-            </h3>
-            <p className="text-sm text-slate-600">
-              Randomly select who goes first
-            </p>
-          </div>
-        </div>
-      </button>
-
-      {/* Turn Timer Shortcut */}
-      <button
-        onClick={() => onNavigateToGameNiteTools('turn-timer')}
-        className="group bg-white container-radius shadow-sm border border-container p-6 hover:shadow-md hover:border-purple-300 transition text-left"
-      >
-        <div className="flex items-start space-x-4">
-          <div className="p-3 bg-gradient-to-br from-purple-600 to-pink-600 container-radius group-hover:scale-110 transition-transform">
-            <Timer className="w-6 h-6 text-white" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-display font-light text-slate-900 mb-1 group-hover:text-purple-600 transition">
-              Turn Timer
-            </h3>
-            <p className="text-sm text-slate-600">
-              Countdown each player's turn
-            </p>
-          </div>
-        </div>
-      </button>
+    <div className="flex flex-wrap gap-3">
+      {actions.map(({ tool, label, Icon, gradient, shadow, hoverShadow }) => (
+        <button
+          key={tool}
+          onClick={() => onNavigateToGameNiteTools(tool)}
+          style={{ boxShadow: shadow }}
+          onMouseEnter={e => (e.currentTarget.style.boxShadow = hoverShadow)}
+          onMouseLeave={e => (e.currentTarget.style.boxShadow = shadow)}
+          className={`group flex flex-col items-center justify-center gap-2 w-32 h-24 bg-gradient-to-b ${gradient} container-radius hover:brightness-110 transition border-0`}
+        >
+          <Icon className="w-7 h-7 text-white group-hover:scale-110 transition-transform" />
+          <span className="text-white text-sm text-center leading-tight px-2">
+            {label}
+          </span>
+        </button>
+      ))}
     </div>
   );
 }
