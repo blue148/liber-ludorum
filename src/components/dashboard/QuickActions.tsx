@@ -35,7 +35,7 @@ export default function QuickActions({ onNavigateToGameNiteTools }: QuickActions
   ];
 
   return (
-    <div className="flex flex-wrap gap-3">
+    <div className="flex gap-2 sm:flex-wrap sm:gap-3">
       {actions.map(({ tool, label, Icon, gradient, shadow, hoverShadow }) => (
         <button
           key={tool}
@@ -43,9 +43,9 @@ export default function QuickActions({ onNavigateToGameNiteTools }: QuickActions
           style={{ boxShadow: shadow }}
           onMouseEnter={e => (e.currentTarget.style.boxShadow = hoverShadow)}
           onMouseLeave={e => (e.currentTarget.style.boxShadow = shadow)}
-          className={`group flex flex-col items-center justify-center gap-2 w-32 h-24 bg-gradient-to-b ${gradient} container-radius hover:brightness-110 transition border-0`}
+          className={`group flex flex-1 sm:flex-none flex-col items-center justify-center gap-1.5 sm:gap-2 h-16 sm:w-32 sm:h-24 bg-gradient-to-b ${gradient} container-radius hover:brightness-110 transition border-0`}
         >
-          <Icon className="w-7 h-7 text-white group-hover:scale-110 transition-transform" />
+          <Icon className="w-5 h-5 sm:w-7 sm:h-7 text-white group-hover:scale-110 transition-transform" />
           <span className="text-white text-sm text-center leading-tight px-2">
             {label}
           </span>

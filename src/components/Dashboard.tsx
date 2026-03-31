@@ -79,47 +79,56 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   return (
     <div className="min-h-screen bg-cream">
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 sm:py-12 lg:px-12">
-        {/* Quick Stats */}
-        <QuickStats stats={stats} />
+        {/*
+          Mobile order:  Quick Actions → Most Played → Stats → Recently Added → Chart
+          Desktop order: Stats → Quick Actions → Most Played → Recently Added → Chart
+          Achieved with flex-col + responsive order classes.
+        */}
+        <div className="flex flex-col">
 
-        {stats.totalGames > 0 && (
-          <div className="mt-8">
-            <h2 className="text-xs font-body text-slate-500 tracking-widest mb-4">Quick Actions</h2>
-            <QuickActions
-              onNavigateToGameNiteTools={(tool) => {
-                if (onNavigate) {
-                  onNavigate('gameNiteTools', { tool });
-                } else {
-                  toast.info('Switch to the Game Nite Tools tab');
-                }
-              }}
-            />
+          {/* Quick Stats — order-3 on mobile, order-1 on desktop */}
+          <div className="order-3 md:order-1 mt-8 md:mt-0">
+            <QuickStats stats={stats} />
           </div>
-        )}
 
-        {stats.totalGames > 0 && (
-          <div className="mt-12">
-            <MostPlayedGames
-              games={mostPlayed}
-              maxPlayCount={mostPlayed[0]?.playCount || 0}
-            />
-          </div>
-        )}
+          {stats.totalGames > 0 && (
+            <div className="order-1 md:order-2 md:mt-8">
+              <h2 className="text-xs font-body text-slate-500 tracking-widest mb-4">Quick Actions</h2>
+              <QuickActions
+                onNavigateToGameNiteTools={(tool) => {
+                  if (onNavigate) {
+                    onNavigate('gameNiteTools', { tool });
+                  } else {
+                    toast.info('Switch to the Game Nite Tools tab');
+                  }
+                }}
+              />
+            </div>
+          )}
 
-        {stats.totalGames > 0 && recentlyAdded.length > 0 && (
-          <div className="mt-12">
-            <RecentlyAddedGames games={recentlyAdded} />
-          </div>
-        )}
+          {stats.totalGames > 0 && (
+            <div className="order-2 md:order-3 mt-8 md:mt-12">
+              <MostPlayedGames
+                games={mostPlayed}
+                maxPlayCount={mostPlayed[0]?.playCount || 0}
+              />
+            </div>
+          )}
 
-        {stats.totalGames > 0 && playActivity.length > 0 && (
-          <div className="mt-12">
-            <PlayActivityChart activity={playActivity} />
-          </div>
-        )}
+          {stats.totalGames > 0 && recentlyAdded.length > 0 && (
+            <div className="order-4 mt-8 md:mt-12">
+              <RecentlyAddedGames games={recentlyAdded} />
+            </div>
+          )}
 
-        {stats.totalGames === 0 && (
-          <div className="mt-12 bg-cream linen-texture border thin-rule rule-line p-16 text-center">
+          {stats.totalGames > 0 && playActivity.length > 0 && (
+            <div className="order-5 mt-8 md:mt-12">
+              <PlayActivityChart activity={playActivity} />
+            </div>
+          )}
+
+          {stats.totalGames === 0 && (
+            <div className="order-1 mt-12 bg-cream linen-texture border thin-rule rule-line p-16 text-center">
             <div className="max-w-md mx-auto">
               <BookOpen className="w-16 h-16 text-terracotta-400 mx-auto mb-6" strokeWidth={1} />
               <h2 className="text-2xl font-display font-light text-slate-900 mb-3">Begin Your Collection</h2>
@@ -141,6 +150,8 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </div>
           </div>
         )}
+
+        </div>{/* end flex flex-col */}
       </div>
     </div>
   );

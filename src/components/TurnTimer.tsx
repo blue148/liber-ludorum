@@ -195,7 +195,7 @@ export default function TurnTimer() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
+      <div className="hidden md:flex items-center gap-3 mb-6">
         <Timer className="w-8 h-8 text-purple-600" />
         <div>
           <h2 className="text-3xl font-display font-light text-slate-900">Turn Timer</h2>
