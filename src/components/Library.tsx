@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Star, Filter, Grid3x3, List, ChevronDown, X, ArrowUpDown, DollarSign, Heart, Library as LibraryIcon } from 'lucide-react';
+import { Plus, Star, Filter, Grid3x3, List, ChevronDown, X, ArrowUpDown, DollarSign, Heart, Library as LibraryIcon, Users } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   getUserLibrary,
@@ -14,20 +14,28 @@ import {
   addGameToWishlist,
 } from '../lib/games';
 import { lookupBarcodeWithBgg, submitBarcodeToGameUpc } from '../lib/bgg';
-import { UserLibraryEntry, Game } from '../lib/supabase';
+import { UserLibraryEntry, Game, SharedLibrary } from '../lib/supabase';
 import GameCard from './GameCard';
 import BarcodeScanner from './BarcodeScanner';
 import EditGameModal from './EditGameModal';
+import VictoryLogModal from './VictoryLogModal';
 import SearchSharedGamesModal from './SearchSharedGamesModal';
 import ManualGameEntry from './ManualGameEntry';
 import Wishlist from './Wishlist';
 import Tooltip from './Tooltip';
+import LibrarySelector from './LibrarySelector';
+import SharedLibraryView from './SharedLibraryView';
+import FriendsManager from './FriendsManager';
 
 type SortOption = 'name-asc' | 'name-desc' | 'date-added-desc' | 'date-added-asc' | 'plays-desc' | 'plays-asc';
 
 export default function Library() {
   const { user, refreshProfile } = useAuth();
-  const [activeTab, setActiveTab] = useState<'catalogue' | 'wishlist'>('catalogue');
+  const [activeTab, setActiveTab] = useState<'catalogue' | 'wishlist' | 'shared'>('catalogue');
+
+  // Shared library state
+  const [selectedSharedLibrary, setSelectedSharedLibrary] = useState<SharedLibrary | null>(null);
+  const [showFriendsManager, setShowFriendsManager] = useState(false);
   const [library, setLibrary] = useState<(UserLibraryEntry & { game: Game })[]>([]);
   const [filteredLibrary, setFilteredLibrary] = useState<(UserLibraryEntry & { game: Game })[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +45,8 @@ export default function Library() {
   const [scannedBarcode, setScannedBarcode] = useState<string>('');
   const [editingGame, setEditingGame] = useState<(UserLibraryEntry & { game: Game }) | null>(null);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [showVictoryModal, setShowVictoryModal] = useState(false);
+  const [victoryGameEntry, setVictoryGameEntry] = useState<(UserLibraryEntry & { game: Game }) | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterFavorites, setFilterFavorites] = useState(false);
   const [filterForSale, setFilterForSale] = useState(false);
@@ -436,18 +446,13 @@ export default function Library() {
     const entry = library.find((e) => e.id === entryId);
     if (!entry) return;
 
-    const today = new Date().toISOString().split('T')[0];
-    const currentDates = entry.played_dates || [];
-    const updatedDates = [...currentDates, today].sort().reverse();
+    setVictoryGameEntry(entry);
+    setShowVictoryModal(true);
+  };
 
-    try {
-      await updateLibraryEntry(entryId, { played_dates: updatedDates });
-      const updatedEntry = await getLibraryEntry(entryId);
-      setLibrary((prev) => prev.map((entry) => (entry.id === entryId ? updatedEntry : entry)));
-      await refreshProfile();
-    } catch (error) {
-      console.error('Error adding play:', error);
-    }
+  const handleVictoryLogged = async () => {
+    await loadLibrary();
+    await refreshProfile();
   };
 
   const toggleFilterValue = (category: keyof typeof filters, value: string) => {
@@ -493,36 +498,105 @@ export default function Library() {
   return (
     <div className="min-h-screen bg-cream">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-8 sm:py-12">
-        {/* Navigation Tabs */}
+        {/* Navigation - Select Menu on Mobile, Tabs on Desktop */}
         <div className="mb-8 sm:mb-12">
-          <div className="flex border-b thin-rule rule-line">
-            <button
-              onClick={() => setActiveTab('catalogue')}
-              className={`flex items-center gap-2 px-6 py-4 font-body text-sm uppercase tracking-wider transition ${
-                activeTab === 'catalogue'
-                  ? 'border-b-2 border-slate-900 text-slate-900'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <LibraryIcon className="w-4 h-4" strokeWidth={1.5} />
-              <span>My Catalogue</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('wishlist')}
-              className={`flex items-center gap-2 px-6 py-4 font-body text-sm uppercase tracking-wider transition ${
-                activeTab === 'wishlist'
-                  ? 'border-b-2 border-terracotta-500 text-terracotta-700'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Heart className="w-4 h-4" strokeWidth={1.5} />
-              <span>Wishlist</span>
-            </button>
+          {/* Mobile Select Menu */}
+          <div className="md:hidden">
+            <div className="relative">
+              <select
+                value={activeTab}
+                onChange={(e) => {
+                  const newTab = e.target.value as 'catalogue' | 'wishlist' | 'shared';
+                  setActiveTab(newTab);
+                  setSelectedSharedLibrary(null);
+                }}
+                className="w-full appearance-none bg-white border thin-rule rule-line px-4 py-3 pr-8 font-body text-sm uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+              >
+                <option value="catalogue">My Catalogue</option>
+                <option value="wishlist">Wishlist</option>
+                <option value="shared">Friend Libraries</option>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Desktop Tabs */}
+          <div className="hidden md:block">
+            <div className="flex border-b thin-rule rule-line overflow-x-auto">
+              <button
+                onClick={() => {
+                  setActiveTab('catalogue');
+                  setSelectedSharedLibrary(null);
+                }}
+                className={`flex items-center gap-2 px-6 py-4 font-body text-sm uppercase tracking-wider transition whitespace-nowrap ${
+                  activeTab === 'catalogue'
+                    ? 'border-b-2 border-slate-900 text-slate-900'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <LibraryIcon className="w-4 h-4" strokeWidth={1.5} />
+                <span>My Catalogue</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('wishlist');
+                  setSelectedSharedLibrary(null);
+                }}
+                className={`flex items-center gap-2 px-6 py-4 font-body text-sm uppercase tracking-wider transition whitespace-nowrap ${
+                  activeTab === 'wishlist'
+                    ? 'border-b-2 border-terracotta-500 text-terracotta-700'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Heart className="w-4 h-4" strokeWidth={1.5} />
+                <span>Wishlist</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('shared');
+                  setSelectedSharedLibrary(null);
+                }}
+                className={`flex items-center gap-2 px-6 py-4 font-body text-sm uppercase tracking-wider transition whitespace-nowrap ${
+                  activeTab === 'shared'
+                    ? 'border-b-2 border-purple-500 text-purple-700'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Users className="w-4 h-4" strokeWidth={1.5} />
+                <span>Friend Libraries</span>
+              </button>
+            </div>
           </div>
         </div>
 
         {activeTab === 'wishlist' ? (
           <Wishlist />
+        ) : activeTab === 'shared' ? (
+          selectedSharedLibrary ? (
+            <SharedLibraryView
+              library={selectedSharedLibrary}
+              onBack={() => setSelectedSharedLibrary(null)}
+            />
+          ) : (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h2 className="text-2xl font-display font-light text-slate-900 mb-2">Friend Libraries</h2>
+                <p className="text-slate-600 mb-4">Browse games from your friends' collections</p>
+                <button
+                  onClick={() => setShowFriendsManager(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium text-sm"
+                >
+                  <Users className="w-4 h-4" strokeWidth={1.5} />
+                  Manage Friends
+                </button>
+              </div>
+
+              <LibrarySelector
+                selectedLibrary={selectedSharedLibrary}
+                onSelectLibrary={setSelectedSharedLibrary}
+              />
+            </div>
+          )
         ) : (
           <div>
         <div className="mb-8 sm:mb-12 space-y-4 sm:space-y-6">
@@ -878,6 +952,16 @@ export default function Library() {
         />
       )}
 
+      <VictoryLogModal
+        isOpen={showVictoryModal}
+        onClose={() => {
+          setShowVictoryModal(false);
+          setVictoryGameEntry(null);
+        }}
+        preSelectedGame={victoryGameEntry?.game}
+        onSessionLogged={handleVictoryLogged}
+      />
+
       {showDuplicateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
@@ -893,6 +977,11 @@ export default function Library() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Friends Manager Modal */}
+      {showFriendsManager && (
+        <FriendsManager onClose={() => setShowFriendsManager(false)} />
       )}
     </div>
   );

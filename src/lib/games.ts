@@ -1,4 +1,5 @@
-import { supabase, Game, UserLibraryEntry, UserWishlistEntry } from './supabase';
+import { supabase, Game, UserLibraryEntry, UserWishlistEntry, UserLibraryEntryWithStats, UserFriend, SharedLibraryAccess, SharedLibrary, Profile } from './supabase';
+import { getUserGameVictoryStats } from './sessions';
 
 export async function getUserLibrary(userId: string) {
   const { data, error } = await supabase
@@ -12,6 +13,34 @@ export async function getUserLibrary(userId: string) {
 
   if (error) throw error;
   return data as (UserLibraryEntry & { game: Game })[];
+}
+
+export async function getUserLibraryWithVictoryStats(userId: string) {
+  const library = await getUserLibrary(userId);
+
+  // Add victory stats for each game
+  const libraryWithStats = await Promise.all(
+    library.map(async (entry) => {
+      try {
+        const victoryStats = await getUserGameVictoryStats(userId, entry.game_id);
+        return {
+          ...entry,
+          victory_stats: {
+            total_sessions: victoryStats.total_sessions,
+            total_wins: victoryStats.total_wins,
+            win_rate: victoryStats.win_rate,
+            best_score: victoryStats.best_score,
+            last_played: victoryStats.last_played,
+          }
+        } as UserLibraryEntryWithStats & { game: Game };
+      } catch (error) {
+        // If victory stats fail, just return the entry without stats
+        return entry as UserLibraryEntryWithStats & { game: Game };
+      }
+    })
+  );
+
+  return libraryWithStats;
 }
 
 export async function getLibraryEntry(entryId: string) {
@@ -302,4 +331,285 @@ export async function checkGameInUserCollections(userId: string, gameId: string)
     libraryEntryId: libraryCheck.data?.id,
     wishlistEntryId: wishlistCheck.data?.id,
   };
+}
+
+// ===========================================
+// SHARED LIBRARY & FRIENDS FUNCTIONS
+// ===========================================
+
+// Friend Management
+export async function sendFriendRequest(userId: string, friendId: string) {
+  const { data, error } = await supabase
+    .from('user_friends')
+    .insert({
+      user_id: userId,
+      friend_id: friendId,
+      status: 'pending'
+    })
+    .select(`
+      *,
+      friend:profiles!user_friends_friend_id_fkey(*)
+    `)
+    .single();
+
+  if (error) throw error;
+  return data as UserFriend & { friend: Profile };
+}
+
+export async function acceptFriendRequest(requestId: string) {
+  const { data, error } = await supabase
+    .from('user_friends')
+    .update({ status: 'accepted' })
+    .eq('id', requestId)
+    .select(`
+      *,
+      friend:profiles!user_friends_friend_id_fkey(*)
+    `)
+    .single();
+
+  if (error) throw error;
+  return data as UserFriend & { friend: Profile };
+}
+
+export async function getUserFriends(userId: string) {
+  const { data, error } = await supabase
+    .from('user_friends')
+    .select(`
+      *,
+      friend:profiles!user_friends_friend_id_fkey(*)
+    `)
+    .or(`and(user_id.eq.${userId},status.eq.accepted),and(friend_id.eq.${userId},status.eq.accepted)`)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data as (UserFriend & { friend: Profile })[];
+}
+
+export async function getPendingFriendRequests(userId: string) {
+  const { data, error } = await supabase
+    .from('user_friends')
+    .select(`
+      *,
+      friend:profiles!user_friends_user_id_fkey(*)
+    `)
+    .eq('friend_id', userId)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data as (UserFriend & { friend: Profile })[];
+}
+
+export async function blockUser(userId: string, friendId: string) {
+  // First, try to update existing relationship
+  const { data: existing } = await supabase
+    .from('user_friends')
+    .update({ status: 'blocked' })
+    .or(`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`)
+    .select()
+    .maybeSingle();
+
+  if (!existing) {
+    // Create new blocked relationship
+    const { data, error } = await supabase
+      .from('user_friends')
+      .insert({
+        user_id: userId,
+        friend_id: friendId,
+        status: 'blocked'
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  return existing;
+}
+
+export async function removeFriend(userId: string, friendId: string) {
+  const { error } = await supabase
+    .from('user_friends')
+    .delete()
+    .or(`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`);
+
+  if (error) throw error;
+
+  // Also remove any library access
+  await revokeLibraryAccess(userId, friendId);
+}
+
+// Library Sharing
+export async function shareLibraryWith(ownerId: string, viewerId: string, accessLevel: 'view' | 'suggest' = 'view') {
+  const { data, error } = await supabase
+    .from('shared_library_access')
+    .insert({
+      owner_id: ownerId,
+      viewer_id: viewerId,
+      access_level: accessLevel,
+      granted_at: new Date().toISOString()
+    })
+    .select(`
+      *,
+      owner:profiles!shared_library_access_owner_id_fkey(*),
+      viewer:profiles!shared_library_access_viewer_id_fkey(*)
+    `)
+    .single();
+
+  if (error) throw error;
+  return data as SharedLibraryAccess & { owner: Profile; viewer: Profile };
+}
+
+export async function revokeLibraryAccess(ownerId: string, viewerId: string) {
+  const { error } = await supabase
+    .from('shared_library_access')
+    .delete()
+    .eq('owner_id', ownerId)
+    .eq('viewer_id', viewerId);
+
+  if (error) throw error;
+}
+
+export async function getSharedLibraries(userId: string): Promise<SharedLibrary[]> {
+  const { data, error } = await supabase
+    .from('shared_library_access')
+    .select(`
+      *,
+      owner:profiles!shared_library_access_owner_id_fkey(*)
+    `)
+    .eq('viewer_id', userId)
+    .order('granted_at', { ascending: false });
+
+  if (error) throw error;
+
+  // Get library metadata for each shared library
+  const libraries = await Promise.all(
+    data.map(async (access) => {
+      const { count } = await supabase
+        .from('user_library')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', access.owner_id);
+
+      const { data: latestEntry } = await supabase
+        .from('user_library')
+        .select('updated_at')
+        .eq('user_id', access.owner_id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      return {
+        owner: access.owner,
+        game_count: count || 0,
+        last_updated: latestEntry?.updated_at || access.granted_at,
+        access_level: access.access_level
+      } as SharedLibrary;
+    })
+  );
+
+  return libraries;
+}
+
+export async function getSharedLibraryGames(ownerId: string, viewerId: string, limit: number = 50, offset: number = 0) {
+  // First check if viewer has access
+  const { data: access } = await supabase
+    .from('shared_library_access')
+    .select('access_level')
+    .eq('owner_id', ownerId)
+    .eq('viewer_id', viewerId)
+    .single();
+
+  if (!access) {
+    throw new Error('Access denied to this library');
+  }
+
+  const { data, error } = await supabase
+    .from('user_library')
+    .select(`
+      *,
+      game:shared_games(*)
+    `)
+    .eq('user_id', ownerId)
+    .order('added_date', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) throw error;
+  return data as (UserLibraryEntry & { game: Game })[];
+}
+
+export async function searchSharedLibrary(ownerId: string, viewerId: string, query: string, limit: number = 20) {
+  // First check if viewer has access
+  const { data: access } = await supabase
+    .from('shared_library_access')
+    .select('access_level')
+    .eq('owner_id', ownerId)
+    .eq('viewer_id', viewerId)
+    .single();
+
+  if (!access) {
+    throw new Error('Access denied to this library');
+  }
+
+  const { data, error } = await supabase
+    .from('user_library')
+    .select(`
+      *,
+      game:shared_games(*)
+    `)
+    .eq('user_id', ownerId)
+    .or(`game.name.ilike.%${query}%,game.publisher.ilike.%${query}%`)
+    .order('added_date', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data as (UserLibraryEntry & { game: Game })[];
+}
+
+export async function getFriendsWithLibraryAccess(userId: string) {
+  const { data, error } = await supabase
+    .from('shared_library_access')
+    .select(`
+      *,
+      viewer:profiles!shared_library_access_viewer_id_fkey(*)
+    `)
+    .eq('owner_id', userId)
+    .order('granted_at', { ascending: false });
+
+  if (error) throw error;
+  return data as (SharedLibraryAccess & { viewer: Profile })[];
+}
+
+export async function searchUsers(query: string, excludeUserId: string, limit: number = 10) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, username, email, avatar_url, total_games')
+    .or(`username.ilike.%${query}%,email.ilike.%${query}%`)
+    .neq('id', excludeUserId)
+    .order('total_games', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data as Profile[];
+}
+
+export async function getGameOwnership(gameId: string, friendIds: string[]) {
+  if (friendIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from('user_library')
+    .select(`
+      user_id,
+      game_id,
+      profiles!user_library_user_id_fkey(id, username, avatar_url)
+    `)
+    .eq('game_id', gameId)
+    .in('user_id', friendIds);
+
+  if (error) throw error;
+  return data.map(entry => ({
+    user_id: entry.user_id,
+    game_id: entry.game_id,
+    owner: entry.profiles
+  }));
 }

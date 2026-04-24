@@ -35,13 +35,6 @@ export default function GameNiteTools({ initialTool }: GameNiteToolsProps) {
     }, 180);
   };
 
-  const transitionToGrid = () => {
-    setIsVisible(false);
-    setTimeout(() => {
-      setMobileView('grid');
-      setIsVisible(true);
-    }, 180);
-  };
 
   const activeDef = tools.find(t => t.id === activeTool)!;
 
