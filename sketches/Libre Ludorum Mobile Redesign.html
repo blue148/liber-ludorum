@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Libre Ludorum — Mobile Redesign</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="redesign-screens.jsx"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+  </style>
+  <template id="__bundler_thumbnail">
+    <svg viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg">
+      <rect width="120" height="80" fill="#fdf8f0"/>
+      <rect x="20" y="10" width="24" height="60" rx="3" fill="#b85c28" opacity=".15"/>
+      <rect x="48" y="10" width="24" height="60" rx="3" fill="#245230" opacity=".15"/>
+      <rect x="76" y="10" width="24" height="60" rx="3" fill="#74389a" opacity=".15"/>
+      <rect x="22" y="22" width="20" height="16" rx="2" fill="#b85c28" opacity=".7"/>
+      <rect x="50" y="22" width="20" height="16" rx="2" fill="#245230" opacity=".7"/>
+      <rect x="78" y="22" width="20" height="16" rx="2" fill="#74389a" opacity=".7"/>
+    </svg>
+  </template>
+</head>
+<body>
+<div id="root" style="height:100%"></div>
+
+<script type="text/babel">
+const { DCSection, DCArtboard } = window;
+const {
+  DashboardScreen, LibraryScreen, LibraryFilterScreen,
+  GameNightScreen,  ScanScreen,
+  LibraryGridScreen3, LibraryGridScreen2,
+  TADashboard, TALibrary, TAGameNight,
+  TBDashboard, TBLibrary, TBGameNight,
+  TCDashboard, TCLibrary, TCGameNight,
+  TDDashboard, TDLibrary, TDGameNight,
+} = window;
+
+// ── Annotation badge — callout labels for key design decisions ─────────────
+function Note({ children, color = '#b85c28', top, left, right, bottom, align = 'left' }) {
+  return (
+    <div style={{
+      position: 'absolute', top, left, right, bottom,
+      background: color, color: '#fff', borderRadius: 99,
+      padding: '4px 10px', fontSize: 10, fontFamily: "'Jost', sans-serif",
+      fontWeight: 600, letterSpacing: '0.04em', whiteSpace: 'nowrap',
+      boxShadow: `0 2px 8px ${color}55`, zIndex: 30,
+      textAlign: align, pointerEvents: 'none',
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <React.Fragment>
+    <DCSection id="mobile-redesign" title="Mobile-First UI Redesign — Libre Ludorum">
+
+      {/* ── 01 Dashboard ─────────────────────────────────────────────────── */}
+      <DCArtboard id="dash" label="01 Dashboard" width={390} height={844}>
+        <div style={{ position: 'relative' }}>
+          <DashboardScreen />
+          <Note color="#7c3aed" top={148} left={16}>Quick-action shortcuts</Note>
+          <Note color="#245230" top={262} right={16}>2-col stat grid</Note>
+          <Note color="#b85c28" top={390} left={16}>Play-count badge on covers</Note>
+        </div>
+      </DCArtboard>
+
+      {/* ── 02 Library ───────────────────────────────────────────────────── */}
+      <DCArtboard id="lib" label="02 Library — My Catalogue" width={390} height={844}>
+        <div style={{ position: 'relative' }}>
+          <LibraryScreen />
+          <Note color="#245230" top={87} left={16}>Pill tabs (replaces dropdown)</Note>
+          <Note color="#b85c28" top={140} right={8}>Scan inline in search bar</Note>
+          <Note color="#0284c7" top={188} left={16}>Compact filter bar</Note>
+          <Note color="#b85c28" bottom={88} right={4}>FAB: quick scan</Note>
+        </div>
+      </DCArtboard>
+
+      {/* ── 03 Filter Bottom Sheet ───────────────────────────────────────── */}
+      <DCArtboard id="filter" label="03 Library — Filter Sheet" width={390} height={844}>
+        <div style={{ position: 'relative' }}>
+          <LibraryFilterScreen />
+          <Note color="#0284c7" top={282} left={16}>Tap-target player chips (44px)</Note>
+          <Note color="#245230" top={356} right={8}>Pill-style type filters</Note>
+          <Note color="#7c3aed" top={480} left={16}>Radio sort options</Note>
+          <Note color="#245230" bottom={4} right={4}>Sticky Apply / Clear CTA</Note>
+        </div>
+      </DCArtboard>
+
+      {/* ── 04 Game Night ────────────────────────────────────────────────── */}
+      <DCArtboard id="gn" label="04 Game Night Tools" width={390} height={844}>
+        <div style={{ position: 'relative' }}>
+          <GameNightScreen />
+          <Note color="#7c3aed" top={118} right={8}>Full-width rows (vs 2×2 grid)</Note>
+          <Note color="#e11d48" top={192} right={8}>Color-coded per tool</Note>
+          <Note color="#0284c7" top={266} right={8}>Sublabel for discoverability</Note>
+        </div>
+      </DCArtboard>
+
+      {/* ── 05 Add Game ──────────────────────────────────────────────────── */}
+      <DCArtboard id="scan" label="05 Add Game / Scan" width={390} height={720}>
+        <div style={{ position: 'relative' }}>
+          <ScanScreen />
+          <Note color="#b85c28" top={212} right={8}>Corner-mark viewfinder</Note>
+          <Note color="#245230" top={530} left={16}>BGG search fallback</Note>
+          <Note color="#7a6e5c" bottom={4} left={16}>Manual entry escape hatch</Note>
+        </div>
+      </DCArtboard>
+
+      {/* ── 06 Grid: 3-col ───────────────────────────────────────────────── */}
+      <DCArtboard id="grid3" label="06 Library — 3-Col Grid" width={390} height={844}>
+        <div style={{ position: 'relative' }}>
+          <LibraryGridScreen3 />
+          <Note color="#245230" top={188} left={16}>Grid/list toggle in filter bar</Note>
+          <Note color="#b85c28" top={290} right={8}>Play count + players + time per card</Note>
+          <Note color="#7c3aed" top={580} left={16}>9 games visible above fold</Note>
+        </div>
+      </DCArtboard>
+
+
+    </DCSection>
+
+    <DCSection id="theme-a" title="Theme A — The Ledger · dark warm ink · terracotta + gold">
+
+        <DCArtboard id="ta-dash" label="A1 Dashboard" width={390} height={844}>
+          <div style={{ position: 'relative' }}>
+            <TADashboard />
+            <Note color="#b85c28" top={148} left={16}>Actions: unified surface, primary icon</Note>
+            <Note color="#c49018" top={268} right={8}>Large serif stats — literary feel</Note>
+          </div>
+        </DCArtboard>
+        <DCArtboard id="ta-lib" label="A2 Library — 3-Col Grid" width={390} height={844}>
+          <div style={{ position: 'relative' }}>
+            <TALibrary />
+            <Note color="#b85c28" top={140} right={8}>Terracotta scan CTA</Note>
+            <Note color="#c49018" top={360} left={16}>Cover art pops on dark surface</Note>
+          </div>
+        </DCArtboard>
+        <DCArtboard id="ta-gn" label="A3 Game Night" width={390} height={844}>
+          <div style={{ position: 'relative' }}>
+            <TAGameNight />
+            <Note color="#7a62a8" top={170} left={16}>Muted distinct tool surfaces</Note>
+            <Note color="#f7eed8" top={254} right={8}>Serif tool names — premium</Note>
+          </div>
+        </DCArtboard>
+      </DCSection>
+
+      {/* ── Theme B: The Folio ────────────────────────────────────────────── */}
+      <DCSection id="theme-b" title="Theme B — The Folio · dark forest green · green + gold">
+        <DCArtboard id="tb-dash" label="B1 Dashboard" width={390} height={844}>
+          <div style={{ position: 'relative' }}>
+            <TBDashboard />
+            <Note color="#3a7040" top={148} left={16}>Forest green primary icons</Note>
+            <Note color="#c49018" top={268} right={8}>Same large serif stats</Note>
+          </div>
+        </DCArtboard>
+        <DCArtboard id="tb-lib" label="B2 Library — 3-Col Grid" width={390} height={844}>
+          <div style={{ position: 'relative' }}>
+            <TBLibrary />
+            <Note color="#3a7040" top={140} right={8}>Green scan + active tab</Note>
+            <Note color="#6a8060" top={360} left={16}>Deeper forest surface tone</Note>
+          </div>
+        </DCArtboard>
+        <DCArtboard id="tb-gn" label="B3 Game Night" width={390} height={844}>
+          <div style={{ position: 'relative' }}>
+            <TBGameNight />
+            <Note color="#3a7040" top={80} right={8}>Green nav accent</Note>
+            <Note color="#6a58a0" top={170} left={16}>Same muted tool palette</Note>
+          </div>
+        </DCArtboard>
+      </DCSection>
+
+    <DCSection id="theme-c" title="Theme C — Botanical · parchment · sage green + gold">
+      <DCArtboard id="tc-dash" label="C1 Dashboard" width={390} height={844}>
+        <div style={{ position: 'relative' }}>
+          <TCDashboard />
+          <Note color="#3a7040" top={148} left={16}>Unified sage green primary actions</Note>
+          <Note color="#c49018" top={268} right={8}>Large serif stats on white cards</Note>
+        </div>
+      </DCArtboard>
+      <DCArtboard id="tc-lib" label="C2 Library — 3-Col Grid" width={390} height={844}>
+        <div style={{ position: 'relative' }}>
+          <TCLibrary />
+          <Note color="#3a7040" top={140} right={8}>Sage scan CTA + active tab</Note>
+          <Note color="#9e9180" top={360} left={16}>Cover art on bright white surface</Note>
+        </div>
+      </DCArtboard>
+      <DCArtboard id="tc-gn" label="C3 Game Night" width={390} height={844}>
+        <div style={{ position: 'relative' }}>
+          <TCGameNight />
+          <Note color="#7a6896" top={170} left={16}>Muted botanical tints per tool</Note>
+          <Note color="#5a8060" top={254} right={8}>Sage icon · ink serif label</Note>
+        </div>
+      </DCArtboard>
+    </DCSection>
+
+    <DCSection id="theme-d" title="Theme D — Herbarium · parchment · terracotta + gold">
+      <DCArtboard id="td-dash" label="D1 Dashboard" width={390} height={844}>
+        <div style={{ position: 'relative' }}>
+          <TDDashboard />
+          <Note color="#b85c28" top={148} left={16}>Terracotta primary actions</Note>
+          <Note color="#c49018" top={268} right={8}>Same serif stats — warmer tone</Note>
+        </div>
+      </DCArtboard>
+      <DCArtboard id="td-lib" label="D2 Library — 3-Col Grid" width={390} height={844}>
+        <div style={{ position: 'relative' }}>
+          <TDLibrary />
+          <Note color="#b85c28" top={140} right={8}>Terracotta scan + active tab</Note>
+          <Note color="#9e9180" top={360} left={16}>Same botanical tool tints</Note>
+        </div>
+      </DCArtboard>
+      <DCArtboard id="td-gn" label="D3 Game Night" width={390} height={844}>
+        <div style={{ position: 'relative' }}>
+          <TDGameNight />
+          <Note color="#a06868" top={170} left={16}>Same muted botanical palette</Note>
+          <Note color="#b85c28" top={80} right={8}>Terracotta header accent</Note>
+        </div>
+      </DCArtboard>
+    </DCSection>
+
+    </React.Fragment>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

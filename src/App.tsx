@@ -17,16 +17,11 @@ const MeepleIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const bottomNavColor: Record<string, string> = {
-  dashboard:     '#b85c28',
-  gameNiteTools: '#2e8282',
-  library:       '#3a7040',
-  admin:         '#74389a',
-};
+const bottomNavColor = '#b85c28';
 
 function AppContent() {
   const { user, profile, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'library' | 'gameNiteTools' | 'admin'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'library' | 'gameNiteTools' | 'admin' | 'profile'>('dashboard');
   const [selectedTool, setSelectedTool] = useState<Tool | undefined>(undefined);
   const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
 
@@ -185,10 +180,22 @@ function AppContent() {
       </div>
 
       {/* ── Mobile slim header (hidden on desktop) ───────────────────────────── */}
-      <div className="md:hidden sticky top-0 z-50 bg-white border-b border-slate-200">
-        <div className="flex items-center px-4 py-3 gap-2">
-          <MeepleIcon className="w-7 h-7 text-slate-900" />
-          <h1 className="text-xl font-bold text-slate-900 font-display">Libre Ludorum</h1>
+      <div className="md:hidden sticky top-0 z-50 bg-white border-b border-parchment-300">
+        <div className="flex items-center justify-between px-4 py-3 gap-3">
+          <div className="flex items-center gap-2">
+            <MeepleIcon className="w-6 h-6 text-ink-600" />
+            <h1 className="font-display font-light text-2xl text-ink-600 tracking-wide">Libre Ludorum</h1>
+          </div>
+          {profile && (
+            <button
+              onClick={() => setIsProfileDrawerOpen(true)}
+              className="w-8 h-8 rounded-full bg-clay-400 flex items-center justify-center flex-shrink-0"
+            >
+              <span className="text-cream font-body text-sm font-semibold">
+                {profile.username.charAt(0).toUpperCase()}
+              </span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -209,6 +216,11 @@ function AppContent() {
         {activeTab === 'library' && <Library />}
         {activeTab === 'gameNiteTools' && <GameNiteTools initialTool={selectedTool} />}
         {activeTab === 'admin' && <AdminPanel />}
+        {activeTab === 'profile' && (
+          <div className="md:hidden">
+            <ProfileDrawer mode="page" isOpen={true} onClose={() => setActiveTab('dashboard')} />
+          </div>
+        )}
       </div>
 
       {/* ── Mobile bottom nav (hidden on desktop) ────────────────────────────── */}
@@ -219,7 +231,6 @@ function AppContent() {
         <div className="flex">
           {bottomNavItems.map(({ tab, icon: Icon, label }) => {
             const isActive = activeTab === tab;
-            const color = bottomNavColor[tab];
             return (
               <button
                 key={tab}
@@ -227,12 +238,12 @@ function AppContent() {
                 className={`relative flex-1 flex flex-col items-center justify-center pt-2 pb-1.5 gap-0.5 transition-colors ${
                   isActive ? '' : 'text-slate-400'
                 }`}
-                style={isActive ? { color } : undefined}
+                style={isActive ? { color: bottomNavColor } : undefined}
               >
                 {isActive && (
                   <span
                     className="absolute top-0 inset-x-0 h-0.5"
-                    style={{ backgroundColor: color }}
+                    style={{ backgroundColor: bottomNavColor }}
                   />
                 )}
                 <Icon className="w-5 h-5" />
@@ -243,13 +254,19 @@ function AppContent() {
             );
           })}
 
-          {/* Profile — opens drawer, not a page tab */}
+          {/* Profile — full page tab on mobile */}
           <button
-            onClick={() => setIsProfileDrawerOpen(true)}
-            className="relative flex-1 flex flex-col items-center justify-center pt-2 pb-1.5 gap-0.5 text-slate-400 hover:text-slate-600 transition-colors"
+            onClick={() => setActiveTab('profile')}
+            className={`relative flex-1 flex flex-col items-center justify-center pt-2 pb-1.5 gap-0.5 transition-colors ${
+              activeTab === 'profile' ? '' : 'text-slate-400'
+            }`}
+            style={activeTab === 'profile' ? { color: bottomNavColor } : undefined}
           >
+            {activeTab === 'profile' && (
+              <span className="absolute top-0 inset-x-0 h-0.5" style={{ backgroundColor: bottomNavColor }} />
+            )}
             <MeepleIcon className="w-5 h-5" />
-            <span className="text-xs font-body">Profile</span>
+            <span className={`text-xs font-body ${activeTab === 'profile' ? 'font-medium' : ''}`}>Profile</span>
           </button>
         </div>
       </nav>

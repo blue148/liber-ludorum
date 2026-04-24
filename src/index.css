@@ -77,9 +77,9 @@
   --color-border-default: var(--color-parchment-300);
   --color-border-strong:  var(--color-ink-200);
 
-  --color-brand-primary: var(--color-forest-500);
-  --color-brand-hover:   var(--color-forest-600);
-  --color-brand-light:   var(--color-forest-100);
+  --color-brand-primary: var(--color-clay-400);
+  --color-brand-hover:   var(--color-clay-500);
+  --color-brand-light:   var(--color-clay-100);
 
   --color-accent-warm:   var(--color-clay-400);
   --color-accent-gold:   var(--color-wheat-300);

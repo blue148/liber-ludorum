@@ -88,12 +88,19 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
           {/* Quick Stats — order-3 on mobile, order-1 on desktop */}
           <div className="order-3 md:order-1 mt-8 md:mt-0">
+            <div className="md:hidden flex items-center gap-3 pt-1 pb-3">
+              <span className="font-display italic font-light text-sm text-ink-200 flex-shrink-0">Your Collection</span>
+              <div className="flex-1 h-px bg-parchment-300" />
+            </div>
             <QuickStats stats={stats} />
           </div>
 
           {stats.totalGames > 0 && (
             <div className="order-1 md:order-2 md:mt-8">
-              <h2 className="text-xs font-body text-slate-500 tracking-widest mb-4">Quick Actions</h2>
+              <div className="flex items-center gap-3 pt-1 pb-3">
+                <span className="font-display italic font-light text-sm text-ink-200 flex-shrink-0">Quick Actions</span>
+                <div className="flex-1 h-px bg-parchment-300" />
+              </div>
               <QuickActions
                 onNavigateToGameNiteTools={(tool) => {
                   if (onNavigate) {
@@ -108,6 +115,10 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
           {stats.totalGames > 0 && (
             <div className="order-2 md:order-3 mt-8 md:mt-12">
+              <div className="md:hidden flex items-center gap-3 pt-1 pb-3">
+                <span className="font-display italic font-light text-sm text-ink-200 flex-shrink-0">Most Played</span>
+                <div className="flex-1 h-px bg-parchment-300" />
+              </div>
               <MostPlayedGames
                 games={mostPlayed}
                 maxPlayCount={mostPlayed[0]?.playCount || 0}
@@ -117,6 +128,10 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
           {stats.totalGames > 0 && recentlyAdded.length > 0 && (
             <div className="order-4 mt-8 md:mt-12">
+              <div className="md:hidden flex items-center gap-3 pt-1 pb-3">
+                <span className="font-display italic font-light text-sm text-ink-200 flex-shrink-0">Recently Added</span>
+                <div className="flex-1 h-px bg-parchment-300" />
+              </div>
               <RecentlyAddedGames games={recentlyAdded} />
             </div>
           )}

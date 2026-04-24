@@ -3,7 +3,7 @@ import GameChooser from './GameChooser';
 import FirstPlayerChooser from './FirstPlayerChooser';
 import TurnTimer from './TurnTimer';
 import GameTimer from './GameTimer';
-import { Sparkles, Dice6, Timer, Clock } from 'lucide-react';
+import { Sparkles, Dice6, Timer, Clock, ChevronRight } from 'lucide-react';
 
 type Tool = 'game-chooser' | 'first-player' | 'turn-timer' | 'game-timer';
 
@@ -12,10 +12,30 @@ interface GameNiteToolsProps {
 }
 
 const tools = [
-  { id: 'game-chooser' as Tool, label: 'Game Chooser', sublabel: 'Spin the wheel to pick a game', Icon: Sparkles, iconColor: 'text-plum-400'  },
-  { id: 'first-player' as Tool, label: 'First Player',  sublabel: 'Randomly pick who goes first',  Icon: Dice6,    iconColor: 'text-clay-400'  },
-  { id: 'turn-timer'   as Tool, label: 'Turn Timer',    sublabel: 'Countdown each player turn',    Icon: Timer,    iconColor: 'text-sky-400'   },
-  { id: 'game-timer'   as Tool, label: 'Game Timer',    sublabel: 'Track a game session',          Icon: Clock,    iconColor: 'text-wheat-400' },
+  {
+    id: 'game-chooser' as Tool,
+    label: 'Game Chooser', sublabel: 'Spin the wheel to pick a game',
+    Icon: Sparkles, iconColor: 'text-plum-400',
+    mobileSurface: 'bg-plum-50', mobileIcon: 'text-plum-300',
+  },
+  {
+    id: 'first-player' as Tool,
+    label: 'First Player', sublabel: 'Randomly pick who goes first',
+    Icon: Dice6, iconColor: 'text-clay-400',
+    mobileSurface: 'bg-clay-50', mobileIcon: 'text-clay-300',
+  },
+  {
+    id: 'turn-timer' as Tool,
+    label: 'Turn Timer', sublabel: 'Countdown each player\'s turn',
+    Icon: Timer, iconColor: 'text-sky-400',
+    mobileSurface: 'bg-forest-50', mobileIcon: 'text-forest-300',
+  },
+  {
+    id: 'game-timer' as Tool,
+    label: 'Game Timer', sublabel: 'Track a full game session',
+    Icon: Clock, iconColor: 'text-wheat-400',
+    mobileSurface: 'bg-wheat-50', mobileIcon: 'text-wheat-400',
+  },
 ];
 
 export default function GameNiteTools({ initialTool }: GameNiteToolsProps) {
@@ -83,19 +103,20 @@ export default function GameNiteTools({ initialTool }: GameNiteToolsProps) {
         }}
       >
         {mobileView === 'grid' ? (
-          /* 2×2 card grid */
-          <div className="grid grid-cols-2 gap-3">
-            {tools.map(({ id, label, sublabel, Icon, iconColor }) => (
+          /* Full-width botanical tool rows */
+          <div className="flex flex-col gap-2">
+            {tools.map(({ id, label, sublabel, Icon, mobileSurface, mobileIcon }) => (
               <button
                 key={id}
                 onClick={() => transitionToTool(id)}
-                className="flex flex-col items-start gap-3 p-4 bg-white border thin-rule rule-line hover:bg-slate-50 active:bg-slate-100 transition text-left"
+                className={`flex items-center gap-4 px-4 py-[18px] ${mobileSurface} border border-parchment-300 text-left active:brightness-95 transition`}
               >
-                <Icon className={`w-6 h-6 ${iconColor}`} />
-                <div>
-                  <div className="font-medium text-sm leading-tight text-slate-900">{label}</div>
-                  <div className="text-xs mt-1 text-slate-500">{sublabel}</div>
+                <Icon className={`w-[22px] h-[22px] flex-shrink-0 ${mobileIcon}`} strokeWidth={1.5} />
+                <div className="flex-1 min-w-0">
+                  <div className="font-display text-xl font-normal text-ink-600 leading-tight">{label}</div>
+                  <div className="font-body text-[11px] text-ink-200 mt-0.5">{sublabel}</div>
                 </div>
+                <ChevronRight className="w-3.5 h-3.5 text-ink-200 flex-shrink-0" strokeWidth={1.5} />
               </button>
             ))}
           </div>
