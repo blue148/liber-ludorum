@@ -116,7 +116,7 @@ function AppContent() {
               <div className="flex items-center space-x-2 py-4">
                 <MeepleIcon className="w-8 h-8 text-slate-900" />
                 <h1 className="text-2xl font-bold text-slate-900 font-display">
-                  Libre Ludorum
+                  Churtern•Play
                 </h1>
               </div>
 
@@ -184,7 +184,7 @@ function AppContent() {
         <div className="flex items-center justify-between px-4 py-3 gap-3">
           <div className="flex items-center gap-2">
             <MeepleIcon className="w-6 h-6 text-ink-600" />
-            <h1 className="font-display font-light text-2xl text-ink-600 tracking-wide">Libre Ludorum</h1>
+            <h1 className="font-display font-light text-2xl text-ink-600 tracking-wide">Churtern•Play</h1>
           </div>
           {profile && (
             <button

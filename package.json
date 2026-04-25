@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "backfill-bgg-ids": "tsx scripts/backfill-bgg-ids.ts",
-    "enrich-bgg": "tsx scripts/enrich-games-with-bgg.ts"
+    "enrich-bgg": "tsx scripts/enrich-games-with-bgg.ts",
+    "flutter": "cd flutter_app && flutter run --profile --no-enable-impeller ",
+    "flutter:test": "cd flutter_app && flutter run -d 'iPhone 16 Pro'"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
