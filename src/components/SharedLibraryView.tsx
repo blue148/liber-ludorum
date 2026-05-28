@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, Filter, Grid3x3, List, ArrowUpDown, X, Star } from 'lucide-react';
+import { ArrowLeft, Filter, Grid3x3, List, X, Star, Search, ChevronDown, Check } from 'lucide-react';
 import { SharedLibrary, UserLibraryEntry, Game } from '../lib/supabase';
 import { getSharedLibraryGames, searchSharedLibrary } from '../lib/games';
 import { useAuth } from '../contexts/AuthContext';
 import GameCard from './GameCard';
+import Tooltip from './Tooltip';
 
 interface SharedLibraryViewProps {
   library: SharedLibrary;
@@ -23,6 +24,7 @@ export default function SharedLibraryView({ library, onBack }: SharedLibraryView
   const [layout, setLayout] = useState<'grid' | 'list'>('grid');
   const [userLayout, setUserLayout] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<SortOption>('name-asc');
+  const [showSortMenu, setShowSortMenu] = useState(false);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(0);
@@ -262,16 +264,15 @@ export default function SharedLibraryView({ library, onBack }: SharedLibraryView
   }
 
   return (
-    <div className="min-h-screen bg-cream">
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-8 sm:py-12">
+    <>
         {/* Header */}
         <div className="mb-8 sm:mb-12">
           <div className="flex items-center space-x-4 mb-6">
             <button
               onClick={onBack}
-              className="p-2 hover:bg-white rounded-lg transition"
+              className="p-2 bg-parchment-100 text-ink-300 hover:bg-parchment-200 hover:text-ink-500 transition"
             >
-              <ArrowLeft className="w-5 h-5 text-slate-600" strokeWidth={1.5} />
+              <ArrowLeft className="w-5 h-5" strokeWidth={1.5} />
             </button>
 
             <div className="flex items-center space-x-3 flex-1 min-w-0">
@@ -289,10 +290,10 @@ export default function SharedLibraryView({ library, onBack }: SharedLibraryView
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <h1 className="text-2xl font-display font-light text-slate-900 truncate">
+                <h1 className="text-2xl font-display font-light text-ink-600 truncate">
                   {library.owner.username}'s Library
                 </h1>
-                <p className="text-slate-600 text-sm">
+                <p className="text-ink-400 text-sm font-body">
                   {library.game_count} {library.game_count === 1 ? 'game' : 'games'}
                 </p>
               </div>
@@ -300,50 +301,48 @@ export default function SharedLibraryView({ library, onBack }: SharedLibraryView
           </div>
 
           {/* Search and Controls */}
-          <div className="space-y-4 sm:space-y-6">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-                placeholder={`Search ${library.owner.username}'s games...`}
-                className="w-full px-4 py-3 text-sm font-body bg-cream border thin-rule rule-line focus:outline-none focus:bg-white transition-colors"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => handleSearch('')}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
-                >
-                  <X className="w-4 h-4" strokeWidth={1.5} />
-                </button>
-              )}
+          <div className="space-y-3 sm:space-y-6">
+            <div className="flex border border-parchment-300 overflow-hidden">
+              <div className="flex-1 flex items-center gap-2 px-3 bg-cream">
+                <Search className="w-4 h-4 text-ink-200 flex-shrink-0" strokeWidth={1.5} />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  placeholder={`Search ${library.owner.username}'s games…`}
+                  className="flex-1 py-2.5 text-sm font-body bg-transparent focus:outline-none text-ink-600 placeholder:text-ink-200"
+                />
+                {searchQuery && (
+                  <button onClick={() => handleSearch('')}>
+                    <X className="w-4 h-4 text-ink-200 hover:text-ink-400 transition" strokeWidth={1.5} />
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:flex-wrap sm:gap-3">
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center gap-2 px-4 py-2 border thin-rule rule-line transition text-xs font-body uppercase tracking-wider ${
+                  className={`flex items-center gap-2 px-4 py-2 border text-xs font-body uppercase tracking-wider transition flex-shrink-0 ${
                     showFilters || activeFiltersCount > 0
-                      ? 'bg-slate-900 text-cream'
-                      : 'bg-cream text-slate-700 hover:bg-slate-50'
+                      ? 'bg-clay-400 text-cream border-clay-500'
+                      : 'bg-cream text-ink-400 border-parchment-300 hover:bg-parchment-100'
                   }`}
                 >
                   <Filter className="w-3.5 h-3.5" strokeWidth={1.5} />
                   <span>Filters</span>
                   {activeFiltersCount > 0 && (
-                    <span className="bg-terracotta-500 text-cream text-xs px-1.5 py-0.5">
-                      {activeFiltersCount}
-                    </span>
+                    <span className="bg-white/25 text-cream text-xs leading-none px-1.5 py-0.5">{activeFiltersCount}</span>
                   )}
                 </button>
 
                 <button
                   onClick={() => setFilters(prev => ({ ...prev, favoriteOnly: !prev.favoriteOnly }))}
-                  className={`flex items-center gap-2 px-4 py-2 border thin-rule rule-line transition text-xs font-body uppercase tracking-wider ${
+                  className={`flex items-center gap-2 px-4 py-2 border text-xs font-body uppercase tracking-wider transition ${
                     filters.favoriteOnly
-                      ? 'bg-gold-500 text-slate-900'
-                      : 'bg-cream text-slate-700 hover:bg-slate-50'
+                      ? 'bg-wheat-50 text-wheat-400 border-wheat-200'
+                      : 'bg-cream text-ink-400 border-parchment-300 hover:bg-parchment-100'
                   }`}
                 >
                   <Star className="w-3.5 h-3.5" fill={filters.favoriteOnly ? 'currentColor' : 'none'} strokeWidth={1.5} />
@@ -353,7 +352,7 @@ export default function SharedLibraryView({ library, onBack }: SharedLibraryView
                 {activeFiltersCount > 0 && (
                   <button
                     onClick={clearAllFilters}
-                    className="text-xs sm:text-sm text-slate-600 hover:text-slate-900 underline px-1"
+                    className="text-xs font-body text-ink-300 hover:text-ink-500 underline px-1"
                   >
                     Clear all
                   </button>
@@ -362,48 +361,51 @@ export default function SharedLibraryView({ library, onBack }: SharedLibraryView
 
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <div className="relative flex-1 sm:flex-initial">
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as SortOption)}
-                    className="appearance-none bg-white border border-slate-300 rounded-lg pl-2 sm:pl-3 pr-7 sm:pr-8 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none w-full"
+                  <button
+                    onClick={() => setShowSortMenu(!showSortMenu)}
+                    className="flex items-center justify-between gap-2 w-full bg-cream border border-parchment-300 px-3 py-2 text-xs font-body text-ink-400 hover:bg-parchment-100 transition"
                   >
-                    <option value="name-asc">Name (A-Z)</option>
-                    <option value="name-desc">Name (Z-A)</option>
-                    <option value="date-added-desc">Recently Added</option>
-                    <option value="date-added-asc">Oldest First</option>
-                  </select>
-                  <ArrowUpDown className="absolute right-1.5 sm:right-2 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 pointer-events-none" />
+                    <span>{({'name-asc':'Name (A–Z)','name-desc':'Name (Z–A)','date-added-desc':'Recently Added','date-added-asc':'Oldest First'} as Record<string,string>)[sortBy]}</span>
+                    <ChevronDown className="w-3.5 h-3.5 text-ink-200 flex-shrink-0" strokeWidth={1.5} />
+                  </button>
+                  {showSortMenu && (
+                    <>
+                      <div className="fixed inset-0 z-[100]" onClick={() => setShowSortMenu(false)} />
+                      <div className="absolute right-0 top-full mt-1 w-48 bg-cream border border-parchment-300 shadow-lg py-1 z-[101]">
+                        {([
+                          { value: 'name-asc', label: 'Name (A–Z)' },
+                          { value: 'name-desc', label: 'Name (Z–A)' },
+                          { value: 'date-added-desc', label: 'Recently Added' },
+                          { value: 'date-added-asc', label: 'Oldest First' },
+                        ] as const).map(({ value, label }) => (
+                          <button key={value} onClick={() => { setSortBy(value); setShowSortMenu(false); }}
+                            className="w-full px-4 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2">
+                            <Check className={`w-3.5 h-3.5 flex-shrink-0 ${sortBy === value ? 'opacity-100' : 'opacity-0'}`} strokeWidth={2} />
+                            <span>{label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
 
-                <div className="flex items-center space-x-0.5 sm:space-x-1 border border-slate-300 rounded-lg p-0.5 sm:p-1">
-                  <button
-                    onClick={() => {
-                      setUserLayout('grid');
-                      if (window.innerWidth > 480) {
-                        setLayout('grid');
-                      }
-                    }}
-                    className={`p-1.5 sm:p-2 rounded transition ${
-                      layout === 'grid'
-                        ? 'bg-slate-900 text-white'
-                        : 'text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    <Grid3x3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      setUserLayout('list');
-                      setLayout('list');
-                    }}
-                    className={`p-1.5 sm:p-2 rounded transition ${
-                      layout === 'list'
-                        ? 'bg-slate-900 text-white'
-                        : 'text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    <List className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  </button>
+                <div className="flex border border-parchment-300 overflow-hidden">
+                  <Tooltip content="Grid view">
+                    <button
+                      onClick={() => { setUserLayout('grid'); if (window.innerWidth > 480) { setLayout('grid'); } }}
+                      className={`p-2 transition ${layout === 'grid' ? 'bg-clay-400 text-cream' : 'bg-cream text-ink-300 hover:bg-parchment-100'}`}
+                    >
+                      <Grid3x3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </button>
+                  </Tooltip>
+                  <Tooltip content="List view">
+                    <button
+                      onClick={() => { setUserLayout('list'); setLayout('list'); }}
+                      className={`p-1.5 sm:p-2 border-l border-parchment-300 transition ${layout === 'list' ? 'bg-clay-400 text-cream' : 'bg-cream text-ink-300 hover:bg-parchment-100'}`}
+                    >
+                      <List className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </button>
+                  </Tooltip>
                 </div>
               </div>
             </div>
@@ -411,7 +413,7 @@ export default function SharedLibraryView({ library, onBack }: SharedLibraryView
 
           {/* Filters Panel */}
           {showFilters && (
-            <div className="bg-white rounded-lg border border-container p-3 sm:p-6 space-y-4 sm:space-y-6 mt-6">
+            <div className="bg-cream border border-parchment-300 p-3 sm:p-6 space-y-4 sm:space-y-6 mt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {availableFilters.publishers.length > 0 && (
                   <FilterSection
@@ -495,13 +497,13 @@ export default function SharedLibraryView({ library, onBack }: SharedLibraryView
           </div>
         ) : filteredGames.length === 0 ? (
           <div className="text-center py-20">
-            <div className="bg-slate-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Grid3x3 className="w-10 h-10 text-slate-400" />
+            <div className="bg-parchment-100 w-20 h-20 flex items-center justify-center mx-auto mb-4">
+              <Grid3x3 className="w-10 h-10 text-ink-200" strokeWidth={1} />
             </div>
-            <h3 className="text-xl font-display font-light text-slate-900 mb-2">
+            <h3 className="text-xl font-display font-light text-ink-600 mb-2">
               {searchQuery ? 'No matching games' : 'No games found'}
             </h3>
-            <p className="text-slate-600">
+            <p className="text-ink-400 font-body">
               {searchQuery ? 'Try a different search term' : `${library.owner.username}'s library appears to be empty`}
             </p>
           </div>
@@ -528,7 +530,7 @@ export default function SharedLibraryView({ library, onBack }: SharedLibraryView
                 <button
                   onClick={loadMore}
                   disabled={loadingMore}
-                  className="px-6 py-3 bg-slate-900 text-cream hover:bg-slate-800 transition-colors font-body text-sm disabled:opacity-50"
+                  className="px-6 py-2 bg-cream border border-parchment-300 text-xs font-body text-ink-400 uppercase tracking-wider hover:bg-parchment-100 transition disabled:opacity-50"
                 >
                   {loadingMore ? 'Loading...' : 'Load More Games'}
                 </button>
@@ -537,7 +539,7 @@ export default function SharedLibraryView({ library, onBack }: SharedLibraryView
           </div>
         ) : (
           <div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
               {filteredGames.map((entry) => (
                 <GameCard
                   key={entry.id}
@@ -560,7 +562,7 @@ export default function SharedLibraryView({ library, onBack }: SharedLibraryView
                 <button
                   onClick={loadMore}
                   disabled={loadingMore}
-                  className="px-6 py-3 bg-slate-900 text-cream hover:bg-slate-800 transition-colors font-body text-sm disabled:opacity-50"
+                  className="px-6 py-2 bg-cream border border-parchment-300 text-xs font-body text-ink-400 uppercase tracking-wider hover:bg-parchment-100 transition disabled:opacity-50"
                 >
                   {loadingMore ? 'Loading...' : 'Load More Games'}
                 </button>
@@ -568,8 +570,7 @@ export default function SharedLibraryView({ library, onBack }: SharedLibraryView
             )}
           </div>
         )}
-      </main>
-    </div>
+    </>
   );
 }
 

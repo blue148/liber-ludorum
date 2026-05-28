@@ -26,7 +26,7 @@ export default function GameCard({ entry, onToggleFavorite, onToggleForSale, onD
   // ── List layout ───────────────────────────────────────────────────────────────
   if (layout === 'list') {
     return (
-      <div className="bg-white border border-parchment-200 hover:border-parchment-300 hover:shadow-sm transition group flex relative">
+      <div className="bg-white border border-parchment-200 hover:ring-4 hover:ring-parchment-300 transition group flex relative">
         <div className="w-20 h-20 sm:w-24 sm:h-24 bg-parchment-100 flex-shrink-0 overflow-hidden rounded-l-[2px]">
           {game.cover_image ? (
             <img src={game.cover_image} alt={game.name} className="w-full h-full object-cover" />
@@ -86,7 +86,8 @@ export default function GameCard({ entry, onToggleFavorite, onToggleForSale, onD
             </div>
           </div>
 
-          <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {/* Tridot — always leftmost */}
             <div className="relative">
               <Tooltip content="More options">
                 <button
@@ -99,22 +100,30 @@ export default function GameCard({ entry, onToggleFavorite, onToggleForSale, onD
               {showMenu && (
                 <>
                   <div className="fixed inset-0 z-[100]" onClick={() => setShowMenu(false)} />
-                  <div className="absolute left-0 mt-1 w-40 bg-cream border border-parchment-300 shadow-lg py-1 z-[101]">
+                  <div className="absolute left-0 mt-1 w-44 bg-cream border border-parchment-300 shadow-lg py-1 z-[101]">
                     {!isShared && (
                       <>
                         <button onClick={() => { setShowMenu(false); onEdit(entry); }}
                           className="w-full px-4 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2">
                           <Edit className="w-3.5 h-3.5" strokeWidth={1.5} /><span>Edit Details</span>
                         </button>
+                        {/* Star — rolls into menu below sm */}
+                        <button onClick={() => { setShowMenu(false); onToggleFavorite(entry.id, !entry.is_favorite); }}
+                          className="sm:hidden w-full px-4 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2">
+                          <Star className="w-3.5 h-3.5" strokeWidth={1.5} fill={entry.is_favorite ? 'currentColor' : 'none'} />
+                          <span>{entry.is_favorite ? 'Unstar' : 'Star'}</span>
+                        </button>
+                        {/* Log Play — rolls into menu below md */}
                         {onAddPlay && (
                           <button onClick={() => { setShowMenu(false); onAddPlay(entry.id); }}
-                            className="w-full px-4 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2">
+                            className="md:hidden w-full px-4 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2">
                             <Plus className="w-3.5 h-3.5" strokeWidth={1.5} /><span>Log Play ({playCount})</span>
                           </button>
                         )}
+                        {/* Mark for Sale — rolls into menu below md */}
                         {onToggleForSale && (
                           <button onClick={() => { setShowMenu(false); onToggleForSale(entry.id, !entry.for_sale); }}
-                            className="w-full px-4 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2">
+                            className="md:hidden w-full px-4 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2">
                             <DollarSign className="w-3.5 h-3.5" strokeWidth={1.5} /><span>{entry.for_sale ? 'Remove Sale' : 'Mark for Sale'}</span>
                           </button>
                         )}
@@ -137,15 +146,41 @@ export default function GameCard({ entry, onToggleFavorite, onToggleForSale, onD
               )}
             </div>
 
+            {/* Exposed icon buttons — progressively revealed at larger breakpoints */}
             {!isShared && (
-              <Tooltip content={entry.is_favorite ? 'Unstar' : 'Star'}>
-                <button
-                  onClick={() => onToggleFavorite(entry.id, !entry.is_favorite)}
-                  className={`p-1.5 sm:p-2 transition ${entry.is_favorite ? 'bg-wheat-50 text-wheat-400' : 'bg-parchment-100 text-ink-200 hover:bg-wheat-50 hover:text-wheat-400'}`}
-                >
-                  <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill={entry.is_favorite ? 'currentColor' : 'none'} strokeWidth={1.5} />
-                </button>
-              </Tooltip>
+              <>
+                {/* Log Play — visible md+ */}
+                {onAddPlay && (
+                  <Tooltip content={`Log Play (${playCount})`}>
+                    <button
+                      onClick={() => onAddPlay(entry.id)}
+                      className="hidden md:flex p-1.5 sm:p-2 bg-parchment-100 text-ink-300 hover:bg-parchment-200 hover:text-ink-500 transition items-center justify-center"
+                    >
+                      <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={1.5} />
+                    </button>
+                  </Tooltip>
+                )}
+                {/* Mark for Sale — visible md+ */}
+                {onToggleForSale && (
+                  <Tooltip content={entry.for_sale ? 'Remove Sale' : 'Mark for Sale'}>
+                    <button
+                      onClick={() => onToggleForSale(entry.id, !entry.for_sale)}
+                      className={`hidden md:flex p-1.5 sm:p-2 transition items-center justify-center ${entry.for_sale ? 'bg-forest-50 text-forest-500 hover:bg-forest-100' : 'bg-parchment-100 text-ink-300 hover:bg-forest-50 hover:text-forest-500'}`}
+                    >
+                      <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={1.5} />
+                    </button>
+                  </Tooltip>
+                )}
+                {/* Star — visible sm+ */}
+                <Tooltip content={entry.is_favorite ? 'Unstar' : 'Star'}>
+                  <button
+                    onClick={() => onToggleFavorite(entry.id, !entry.is_favorite)}
+                    className={`hidden sm:flex p-1.5 sm:p-2 transition items-center justify-center ${entry.is_favorite ? 'bg-wheat-50 text-wheat-400' : 'bg-parchment-100 text-ink-200 hover:bg-wheat-50 hover:text-wheat-400'}`}
+                  >
+                    <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill={entry.is_favorite ? 'currentColor' : 'none'} strokeWidth={1.5} />
+                  </button>
+                </Tooltip>
+              </>
             )}
           </div>
         </div>
@@ -155,7 +190,7 @@ export default function GameCard({ entry, onToggleFavorite, onToggleForSale, onD
 
   // ── Grid layout — minimal Herbarium style ─────────────────────────────────────
   return (
-    <div className="bg-white border border-parchment-200 hover:border-parchment-300 transition flex flex-col overflow-hidden relative group">
+    <div className="bg-white border border-parchment-200 hover:ring-4 hover:ring-parchment-300 transition flex flex-col relative group">
       {/* Cover */}
       <div className="aspect-[3/4] bg-parchment-100 relative overflow-hidden">
         {game.cover_image ? (
@@ -200,14 +235,14 @@ export default function GameCard({ entry, onToggleFavorite, onToggleForSale, onD
       {/* Minimal info area */}
       <div className="px-1.5 pt-1.5 pb-1 flex-1 flex flex-col">
         <div className="flex items-start gap-1 mb-1">
-          <h3 className="flex-1 font-body text-[11px] font-medium text-ink-600 leading-snug line-clamp-2 min-w-0">
+          <h3 className="flex-1 font-body text-[14px] font-medium text-ink-600 leading-snug line-clamp-2 min-w-0">
             {game.name}
           </h3>
           {/* ⋮ menu */}
           <div className="relative flex-shrink-0 -mt-0.5">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="w-5 h-5 flex items-center justify-center text-ink-200 hover:text-ink-400 transition"
+              className="p-1 bg-parchment-100 text-ink-300 hover:bg-parchment-200 hover:text-ink-500 transition"
             >
               <MoreVertical className="w-3.5 h-3.5" strokeWidth={1.5} />
             </button>
@@ -218,37 +253,38 @@ export default function GameCard({ entry, onToggleFavorite, onToggleForSale, onD
                   {!isShared && (
                     <>
                       <button onClick={() => { setShowMenu(false); onEdit(entry); }}
-                        className="w-full px-3 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2">
-                        <Edit className="w-3.5 h-3.5" strokeWidth={1.5} /><span>Edit</span>
+                        className="w-full px-4 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2">
+                        <Edit className="w-3.5 h-3.5" strokeWidth={1.5} /><span>Edit Details</span>
                       </button>
                       <button onClick={() => { setShowMenu(false); onToggleFavorite(entry.id, !entry.is_favorite); }}
-                        className="w-full px-3 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2">
+                        className="w-full px-4 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2">
                         <Star className="w-3.5 h-3.5" strokeWidth={1.5} fill={entry.is_favorite ? 'currentColor' : 'none'} />
                         <span>{entry.is_favorite ? 'Unstar' : 'Star'}</span>
                       </button>
                       {onAddPlay && (
                         <button onClick={() => { setShowMenu(false); onAddPlay(entry.id); }}
-                          className="w-full px-3 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2">
-                          <Plus className="w-3.5 h-3.5" strokeWidth={1.5} /><span>Log Play</span>
+                          className="w-full px-4 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2">
+                          <Plus className="w-3.5 h-3.5" strokeWidth={1.5} /><span>Log Play ({playCount})</span>
                         </button>
                       )}
                       {onToggleForSale && (
                         <button onClick={() => { setShowMenu(false); onToggleForSale(entry.id, !entry.for_sale); }}
-                          className="w-full px-3 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2">
-                          <DollarSign className="w-3.5 h-3.5" strokeWidth={1.5} /><span>{entry.for_sale ? 'Remove Sale' : 'For Sale'}</span>
+                          className="w-full px-4 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2">
+                          <DollarSign className="w-3.5 h-3.5" strokeWidth={1.5} /><span>{entry.for_sale ? 'Remove Sale' : 'Mark for Sale'}</span>
                         </button>
                       )}
                       <button onClick={() => { setShowMenu(false); onDelete(entry.id); }}
-                        className="w-full px-3 py-2 text-left text-xs font-body text-clay-500 hover:bg-clay-50 flex items-center gap-2">
+                        className="w-full px-4 py-2 text-left text-xs font-body text-clay-500 hover:bg-clay-50 flex items-center gap-2">
                         <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} /><span>Remove</span>
                       </button>
                     </>
                   )}
                   {isShared && owner && (
-                    <div className="px-3 py-2 text-xs font-body text-ink-300 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <UserCheck className="w-3.5 h-3.5" /><span>{owner.username}'s</span>
+                    <div className="px-4 py-3 text-xs font-body text-ink-300 text-center">
+                      <div className="flex items-center justify-center gap-1 mb-1">
+                        <UserCheck className="w-3.5 h-3.5" /><span className="font-medium">{owner.username}'s</span>
                       </div>
+                      <p className="text-[10px] text-ink-200 uppercase tracking-wider">Read-only</p>
                     </div>
                   )}
                 </div>
@@ -260,7 +296,7 @@ export default function GameCard({ entry, onToggleFavorite, onToggleForSale, onD
         {/* Players + time */}
         <div className="flex items-center gap-2 mt-auto">
           {(game.min_players || game.max_players) && (
-            <span className="flex items-center gap-0.5 font-body text-[9px] text-ink-200">
+            <span className="flex items-center gap-0.5 font-body text-[12px] text-ink-200">
               <Users className="w-2.5 h-2.5" strokeWidth={1.5} />
               {game.min_players === game.max_players
                 ? `${game.min_players}p`
@@ -268,13 +304,13 @@ export default function GameCard({ entry, onToggleFavorite, onToggleForSale, onD
             </span>
           )}
           {game.playtime_minutes && (
-            <span className="flex items-center gap-0.5 font-body text-[9px] text-ink-200">
+            <span className="flex items-center gap-0.5 font-body text-[12px] text-ink-200">
               <Clock className="w-2.5 h-2.5" strokeWidth={1.5} />
               {game.playtime_minutes}m
             </span>
           )}
           {hasVictoryStats && (
-            <span className="flex items-center gap-0.5 font-body text-[9px] text-wheat-400 ml-auto">
+            <span className="flex items-center gap-0.5 font-body text-[12px] text-wheat-400 ml-auto">
               <Trophy className="w-2.5 h-2.5" strokeWidth={1.5} />
             </span>
           )}

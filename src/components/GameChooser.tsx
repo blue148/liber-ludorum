@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserLibraryWithVictoryStats, getSharedLibraries, getSharedLibraryGames } from '../lib/games';
 import { UserLibraryEntryWithStats, Game, SharedLibrary, Profile } from '../lib/supabase';
-import { Sparkles, Users, Clock, Grid3x3, Trophy, Target, TrendingDown, ChevronDown, ChevronUp, BookOpen, UserCheck } from 'lucide-react';
+import { Sparkles, Users, Clock, Grid3x3, Trophy, Target, TrendingDown, ChevronDown, ChevronUp, BookOpen, UserCheck, Check } from 'lucide-react';
 
 // Extended game entry type with owner information
 interface ExtendedGameEntry extends UserLibraryEntryWithStats {
@@ -27,6 +27,7 @@ export default function GameChooser() {
   const [playerCount, setPlayerCount] = useState<number | null>(null);
   const [maxPlaytime, setMaxPlaytime] = useState<number | null>(null);
   const [selectedMechanic, setSelectedMechanic] = useState<string>('');
+  const [showMechanicMenu, setShowMechanicMenu] = useState(false);
 
   // Victory-based filters
   const [favorVictories, setFavorVictories] = useState<boolean>(false);
@@ -536,18 +537,30 @@ export default function GameChooser() {
               <Grid3x3 className="w-4 h-4" />
               Core Mechanic
             </label>
-            <select
-              value={selectedMechanic}
-              onChange={(e) => setSelectedMechanic(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
-            >
-              <option value="">Any</option>
-              {allMechanics.map(mechanic => (
-                <option key={mechanic} value={mechanic}>
-                  {mechanic}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowMechanicMenu(!showMechanicMenu)}
+                className="flex items-center justify-between gap-2 w-full bg-cream border border-parchment-300 px-4 py-2 text-xs font-body text-ink-400 hover:bg-parchment-100 transition"
+              >
+                <span>{selectedMechanic || 'Any'}</span>
+                <ChevronDown className="w-3.5 h-3.5 text-ink-200 flex-shrink-0" strokeWidth={1.5} />
+              </button>
+              {showMechanicMenu && (
+                <>
+                  <div className="fixed inset-0 z-[100]" onClick={() => setShowMechanicMenu(false)} />
+                  <div className="absolute left-0 top-full mt-1 w-full bg-cream border border-parchment-300 shadow-lg py-1 z-[101] max-h-60 overflow-y-auto">
+                    {(['', ...allMechanics] as string[]).map((m) => (
+                      <button key={m || '__any'} type="button" onClick={() => { setSelectedMechanic(m); setShowMechanicMenu(false); }}
+                        className="w-full px-4 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2">
+                        <Check className={`w-3.5 h-3.5 flex-shrink-0 ${selectedMechanic === m ? 'opacity-100' : 'opacity-0'}`} strokeWidth={2} />
+                        <span>{m || 'Any'}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 

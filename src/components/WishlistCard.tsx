@@ -82,7 +82,7 @@ export default function WishlistCard({ entry, onEdit, onDelete, onMoveToLibrary,
               <Tooltip content="More options">
                 <button
                   onClick={() => setShowMenu(!showMenu)}
-                  className="p-1.5 sm:p-2 bg-slate-100 text-slate-700 container-radius hover:bg-slate-200 transition"
+                  className="p-1.5 sm:p-2 bg-parchment-100 text-ink-300 hover:bg-parchment-200 hover:text-ink-500 transition"
                 >
                   <MoreVertical className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
@@ -93,25 +93,19 @@ export default function WishlistCard({ entry, onEdit, onDelete, onMoveToLibrary,
                     className="fixed inset-0 z-[100]"
                     onClick={() => setShowMenu(false)}
                   />
-                  <div className="absolute left-0 mt-1 w-40 bg-white container-radius shadow-lg border border-container py-1 z-[101]">
+                  <div className="absolute left-0 mt-1 w-40 bg-cream border border-parchment-300 shadow-lg py-1 z-[101]">
                     <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        onEdit(entry);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                      onClick={() => { setShowMenu(false); onEdit(entry); }}
+                      className="w-full px-4 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2"
                     >
-                      <Edit className="w-4 h-4" />
+                      <Edit className="w-3.5 h-3.5" strokeWidth={1.5} />
                       <span>Edit Details</span>
                     </button>
                     <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        onDelete(entry.id);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                      onClick={() => { setShowMenu(false); onDelete(entry.id); }}
+                      className="w-full px-4 py-2 text-left text-xs font-body text-clay-500 hover:bg-clay-50 flex items-center gap-2"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
                       <span>Remove</span>
                     </button>
                   </div>
@@ -170,9 +164,9 @@ export default function WishlistCard({ entry, onEdit, onDelete, onMoveToLibrary,
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="p-1.5 hover:bg-slate-100 transition-colors"
+              className="p-1.5 bg-parchment-100 text-ink-300 hover:bg-parchment-200 hover:text-ink-500 transition"
             >
-              <MoreVertical className="w-4 h-4 text-slate-600" strokeWidth={1.5} />
+              <MoreVertical className="w-3.5 h-3.5" strokeWidth={1.5} />
             </button>
             {showMenu && (
               <>
@@ -180,23 +174,17 @@ export default function WishlistCard({ entry, onEdit, onDelete, onMoveToLibrary,
                   className="fixed inset-0 z-[100]"
                   onClick={() => setShowMenu(false)}
                 />
-                <div className="absolute left-0 bottom-full mb-1 w-40 bg-cream border thin-rule rule-line shadow-lg py-1 z-[101]">
+                <div className="absolute left-0 bottom-full mb-1 w-40 bg-cream border border-parchment-300 shadow-lg py-1 z-[101]">
                   <button
-                    onClick={() => {
-                      setShowMenu(false);
-                      onEdit(entry);
-                    }}
-                    className="w-full px-3 py-2 text-left text-xs font-body text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                    onClick={() => { setShowMenu(false); onEdit(entry); }}
+                    className="w-full px-4 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2"
                   >
                     <Edit className="w-3.5 h-3.5" strokeWidth={1.5} />
-                    <span>Edit</span>
+                    <span>Edit Details</span>
                   </button>
                   <button
-                    onClick={() => {
-                      setShowMenu(false);
-                      onDelete(entry.id);
-                    }}
-                    className="w-full px-3 py-2 text-left text-xs font-body text-terracotta-700 hover:bg-terracotta-50 flex items-center gap-2"
+                    onClick={() => { setShowMenu(false); onDelete(entry.id); }}
+                    className="w-full px-4 py-2 text-left text-xs font-body text-clay-500 hover:bg-clay-50 flex items-center gap-2"
                   >
                     <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
                     <span>Remove</span>

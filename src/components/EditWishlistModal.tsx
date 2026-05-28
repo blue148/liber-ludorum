@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, ChevronDown, Check } from 'lucide-react';
 import { UserWishlistEntry, Game } from '../lib/supabase';
 
 interface EditWishlistModalProps {
@@ -12,6 +12,7 @@ interface EditWishlistModalProps {
 export default function EditWishlistModal({ entry, onSave, onClose, onDelete }: EditWishlistModalProps) {
   const [priority, setPriority] = useState<'high' | 'medium' | 'low'>(entry.priority);
   const [notes, setNotes] = useState(entry.notes || '');
+  const [showPriorityMenu, setShowPriorityMenu] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,15 +59,30 @@ export default function EditWishlistModal({ entry, onSave, onClose, onDelete }: 
             <label className="block text-sm font-body font-medium text-slate-900 mb-2">
               Priority
             </label>
-            <select
-              value={priority}
-              onChange={(e) => setPriority(e.target.value as 'high' | 'medium' | 'low')}
-              className="w-full px-3 py-2 border thin-rule rule-line bg-cream focus:outline-none focus:bg-white transition-colors text-sm font-body"
-            >
-              <option value="high">High Priority</option>
-              <option value="medium">Medium Priority</option>
-              <option value="low">Low Priority</option>
-            </select>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowPriorityMenu(!showPriorityMenu)}
+                className="flex items-center justify-between gap-2 w-full bg-cream border border-parchment-300 px-4 py-2 text-xs font-body text-ink-400 hover:bg-parchment-100 transition"
+              >
+                <span>{priority === 'high' ? 'High Priority' : priority === 'medium' ? 'Medium Priority' : 'Low Priority'}</span>
+                <ChevronDown className="w-3.5 h-3.5 text-ink-200 flex-shrink-0" strokeWidth={1.5} />
+              </button>
+              {showPriorityMenu && (
+                <>
+                  <div className="fixed inset-0 z-[100]" onClick={() => setShowPriorityMenu(false)} />
+                  <div className="absolute left-0 top-full mt-1 w-full bg-cream border border-parchment-300 shadow-lg py-1 z-[101]">
+                    {(['high', 'medium', 'low'] as const).map((p) => (
+                      <button key={p} type="button" onClick={() => { setPriority(p); setShowPriorityMenu(false); }}
+                        className="w-full px-4 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2">
+                        <Check className={`w-3.5 h-3.5 flex-shrink-0 ${priority === p ? 'opacity-100' : 'opacity-0'}`} strokeWidth={2} />
+                        <span>{p === 'high' ? 'High Priority' : p === 'medium' ? 'Medium Priority' : 'Low Priority'}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
             <p className="text-xs font-body text-slate-600 mt-1">
               How much do you want this game?
             </p>

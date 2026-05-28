@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Star, Filter, Grid3x3, List, ChevronDown, X, ArrowUpDown, DollarSign, Heart, Library as LibraryIcon, Users, Camera, Search } from 'lucide-react';
+import { Plus, Star, Filter, Grid3x3, List, ChevronDown, Check, X, DollarSign, Heart, Library as LibraryIcon, Users, Camera, Search } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   getUserLibrary,
@@ -53,6 +53,7 @@ export default function Library() {
   const [showFilters, setShowFilters] = useState(false);
   const [layout, setLayout] = useState<'grid' | 'list'>('list');
   const [userLayout, setUserLayout] = useState<'grid' | 'list'>('list');
+  const [showSortMenu, setShowSortMenu] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('name-asc');
 
   const [filters, setFilters] = useState({
@@ -635,24 +636,39 @@ export default function Library() {
               <Filter className="w-3 h-3" strokeWidth={1.5} />
               <span>Filters</span>
               {activeFiltersCount > 0 && (
-                <span className="bg-white/30 text-cream text-[10px] px-1 rounded">{activeFiltersCount}</span>
+                <span className="bg-white/25 text-cream text-xs leading-none px-1.5 py-0.5">{activeFiltersCount}</span>
               )}
             </button>
 
             <div className="relative flex-shrink-0">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="appearance-none bg-cream border border-parchment-300 pl-2 pr-6 py-1.5 text-xs font-body text-ink-400 focus:outline-none cursor-pointer"
+              <button
+                onClick={() => setShowSortMenu(!showSortMenu)}
+                className="flex items-center gap-1.5 bg-cream border border-parchment-300 px-2 py-1.5 text-xs font-body text-ink-400 hover:bg-parchment-100 transition"
               >
-                <option value="name-asc">A–Z</option>
-                <option value="name-desc">Z–A</option>
-                <option value="date-added-desc">Recent</option>
-                <option value="date-added-asc">Oldest</option>
-                <option value="plays-desc">Most Played</option>
-                <option value="plays-asc">Least Played</option>
-              </select>
-              <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-ink-200 pointer-events-none" strokeWidth={1.5} />
+                <span>{({'name-asc':'A–Z','name-desc':'Z–A','date-added-desc':'Recent','date-added-asc':'Oldest','plays-desc':'Most Played','plays-asc':'Least Played'} as Record<string,string>)[sortBy]}</span>
+                <ChevronDown className="w-3 h-3 text-ink-200" strokeWidth={1.5} />
+              </button>
+              {showSortMenu && (
+                <>
+                  <div className="fixed inset-0 z-[100]" onClick={() => setShowSortMenu(false)} />
+                  <div className="absolute left-0 top-full mt-1 w-44 bg-cream border border-parchment-300 shadow-lg py-1 z-[101]">
+                    {([
+                      { value: 'name-asc', label: 'Name (A–Z)' },
+                      { value: 'name-desc', label: 'Name (Z–A)' },
+                      { value: 'date-added-desc', label: 'Recently Added' },
+                      { value: 'date-added-asc', label: 'Oldest First' },
+                      { value: 'plays-desc', label: 'Most Played' },
+                      { value: 'plays-asc', label: 'Least Played' },
+                    ] as const).map(({ value, label }) => (
+                      <button key={value} onClick={() => { setSortBy(value); setShowSortMenu(false); }}
+                        className="w-full px-4 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2">
+                        <Check className={`w-3.5 h-3.5 flex-shrink-0 ${sortBy === value ? 'opacity-100' : 'opacity-0'}`} strokeWidth={2} />
+                        <span>{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="ml-auto flex border border-parchment-300 overflow-hidden flex-shrink-0">
@@ -690,7 +706,7 @@ export default function Library() {
                 <Filter className="w-3.5 h-3.5" strokeWidth={1.5} />
                 <span>Filters</span>
                 {activeFiltersCount > 0 && (
-                  <span className="bg-white/25 text-cream text-xs px-1.5 py-0.5">{activeFiltersCount}</span>
+                  <span className="bg-white/25 text-cream text-xs leading-none px-1.5 py-0.5">{activeFiltersCount}</span>
                 )}
               </button>
 
@@ -730,26 +746,41 @@ export default function Library() {
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <div className="relative flex-1 sm:flex-initial">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortOption)}
-                  className="appearance-none bg-cream border border-parchment-300 pl-2 sm:pl-3 pr-7 sm:pr-8 py-1.5 sm:py-2 text-xs sm:text-sm font-body text-ink-400 hover:bg-parchment-100 transition cursor-pointer focus:outline-none w-full"
+                <button
+                  onClick={() => setShowSortMenu(!showSortMenu)}
+                  className="flex items-center justify-between gap-2 w-full bg-cream border border-parchment-300 px-3 py-2 text-xs font-body text-ink-400 hover:bg-parchment-100 transition"
                 >
-                  <option value="name-asc">Name (A–Z)</option>
-                  <option value="name-desc">Name (Z–A)</option>
-                  <option value="date-added-desc">Recently Added</option>
-                  <option value="date-added-asc">Oldest First</option>
-                  <option value="plays-desc">Most Played</option>
-                  <option value="plays-asc">Least Played</option>
-                </select>
-                <ArrowUpDown className="absolute right-1.5 sm:right-2 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-ink-200 pointer-events-none" />
+                  <span>{({'name-asc':'Name (A–Z)','name-desc':'Name (Z–A)','date-added-desc':'Recently Added','date-added-asc':'Oldest First','plays-desc':'Most Played','plays-asc':'Least Played'} as Record<string,string>)[sortBy]}</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-ink-200 flex-shrink-0" strokeWidth={1.5} />
+                </button>
+                {showSortMenu && (
+                  <>
+                    <div className="fixed inset-0 z-[100]" onClick={() => setShowSortMenu(false)} />
+                    <div className="absolute right-0 top-full mt-1 w-48 bg-cream border border-parchment-300 shadow-lg py-1 z-[101]">
+                      {([
+                        { value: 'name-asc', label: 'Name (A–Z)' },
+                        { value: 'name-desc', label: 'Name (Z–A)' },
+                        { value: 'date-added-desc', label: 'Recently Added' },
+                        { value: 'date-added-asc', label: 'Oldest First' },
+                        { value: 'plays-desc', label: 'Most Played' },
+                        { value: 'plays-asc', label: 'Least Played' },
+                      ] as const).map(({ value, label }) => (
+                        <button key={value} onClick={() => { setSortBy(value); setShowSortMenu(false); }}
+                          className="w-full px-4 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2">
+                          <Check className={`w-3.5 h-3.5 flex-shrink-0 ${sortBy === value ? 'opacity-100' : 'opacity-0'}`} strokeWidth={2} />
+                          <span>{label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="flex border border-parchment-300 overflow-hidden">
                 <Tooltip content="Grid view">
                   <button
                     onClick={() => { setUserLayout('grid'); setLayout('grid'); }}
-                    className={`p-1.5 sm:p-2 transition ${layout === 'grid' ? 'bg-clay-400 text-cream' : 'bg-cream text-ink-300 hover:bg-parchment-100'}`}
+                    className={`p-2 transition ${layout === 'grid' ? 'bg-clay-400 text-cream' : 'bg-cream text-ink-300 hover:bg-parchment-100'}`}
                   >
                     <Grid3x3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
@@ -920,7 +951,7 @@ export default function Library() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0.5">
+          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
             {filteredLibrary.map((entry) => (
               <GameCard
                 key={entry.id}
@@ -1093,12 +1124,12 @@ function MultiSelectDropdown({
   return (
     <div className="relative">
       <div className="flex items-center justify-between mb-2">
-        <h4 className="text-sm font-medium text-slate-900">{title}</h4>
+        <h4 className="text-xs font-body font-medium text-ink-400 uppercase tracking-wider">{title}</h4>
         {selected.length > 0 && onClear && (
           <button
             type="button"
             onClick={onClear}
-            className="text-xs text-slate-600 hover:text-slate-900 underline"
+            className="text-xs font-body text-ink-300 hover:text-ink-500 underline"
             title="Clear all selections"
           >
             Clear
@@ -1108,37 +1139,37 @@ function MultiSelectDropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-3 py-2 text-left bg-white border border-slate-300 rounded-lg text-sm text-slate-700 hover:bg-slate-50 transition flex items-center justify-between"
+        className="w-full px-3 py-2 text-left bg-cream border border-parchment-300 text-xs font-body text-ink-400 hover:bg-parchment-100 transition flex items-center justify-between"
         title={selected.length === 0 ? `Select ${title.toLowerCase()}` : `${selected.length} ${title.toLowerCase()} selected`}
       >
         <span className="truncate">
           {selected.length === 0 ? `Select ${title.toLowerCase()}...` : `${selected.length} selected`}
         </span>
-        <ChevronDown className={`w-4 h-4 flex-shrink-0 ml-2 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3.5 h-3.5 flex-shrink-0 ml-2 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
       {isOpen && (
         <>
           <div
-            className="fixed inset-0 z-10"
+            className="fixed inset-0 z-[100]"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute z-20 w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          <div className="absolute z-[101] w-full mt-1 bg-cream border border-parchment-300 shadow-lg max-h-60 overflow-y-auto">
             {options.length === 0 ? (
-              <div className="px-3 py-2 text-sm text-slate-500">No options available</div>
+              <div className="px-4 py-2 text-xs font-body text-ink-300">No options available</div>
             ) : (
               options.map((option) => (
                 <label
                   key={option}
-                  className="flex items-center space-x-2 px-3 py-2 hover:bg-slate-50 cursor-pointer"
+                  className="flex items-center space-x-2 px-4 py-2 hover:bg-parchment-100 cursor-pointer"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <input
                     type="checkbox"
                     checked={selected.includes(option)}
                     onChange={() => onToggle(option)}
-                    className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer"
+                    className="w-3.5 h-3.5 border-parchment-300 text-ink-500 focus:ring-ink-400 cursor-pointer"
                   />
-                  <span className="text-sm text-slate-700 capitalize">{option}</span>
+                  <span className="text-xs font-body text-ink-400 capitalize">{option}</span>
                 </label>
               ))
             )}

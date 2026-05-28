@@ -279,14 +279,14 @@ export default function FriendsManager({ onClose }: FriendsManagerProps) {
                             </button>
 
                             <div className="relative group">
-                              <button className="p-2 text-slate-400 hover:text-slate-600 transition">
-                                <MoreVertical className="w-4 h-4" strokeWidth={1.5} />
+                              <button className="p-2 bg-parchment-100 text-ink-300 hover:bg-parchment-200 hover:text-ink-500 transition">
+                                <MoreVertical className="w-3.5 h-3.5" strokeWidth={1.5} />
                               </button>
-                              <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 min-w-[120px]">
+                              <div className="absolute right-0 top-full mt-1 bg-cream border border-parchment-300 shadow-lg py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[101] min-w-[140px]">
                                 <button
                                   onClick={() => handleRemoveFriend(friend.id, friend.username)}
                                   disabled={actionLoading === friend.id}
-                                  className="w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 text-left transition"
+                                  className="w-full px-4 py-2 text-left text-xs font-body text-clay-500 hover:bg-clay-50 flex items-center gap-2 transition"
                                 >
                                   Remove Friend
                                 </button>
