@@ -12,9 +12,11 @@ import {
   removeGameFromLibrary,
   checkGameInUserCollections,
   addGameToWishlist,
+  getSharedLibraries,
+  getSharedLibraryGames,
 } from '../lib/games';
 import { lookupBarcodeWithBgg, submitBarcodeToGameUpc } from '../lib/bgg';
-import { UserLibraryEntry, Game, SharedLibrary } from '../lib/supabase';
+import { UserLibraryEntry, Game, SharedLibrary, Profile } from '../lib/supabase';
 import GameCard from './GameCard';
 import BarcodeScanner from './BarcodeScanner';
 import EditGameModal from './EditGameModal';
@@ -23,9 +25,10 @@ import SearchSharedGamesModal from './SearchSharedGamesModal';
 import ManualGameEntry from './ManualGameEntry';
 import Wishlist from './Wishlist';
 import Tooltip from './Tooltip';
-import LibrarySelector from './LibrarySelector';
 import SharedLibraryView from './SharedLibraryView';
 import FriendsManager from './FriendsManager';
+import MultiSelectDropdown from './MultiSelectDropdown';
+import FilterSection from './FilterSection';
 
 type SortOption = 'name-asc' | 'name-desc' | 'date-added-desc' | 'date-added-asc' | 'plays-desc' | 'plays-asc';
 
@@ -36,6 +39,26 @@ export default function Library() {
   // Shared library state
   const [selectedSharedLibrary, setSelectedSharedLibrary] = useState<SharedLibrary | null>(null);
   const [showFriendsManager, setShowFriendsManager] = useState(false);
+  const [sharedLibraries, setSharedLibraries] = useState<SharedLibrary[]>([]);
+  const [loadingFriends, setLoadingFriends] = useState(false);
+  const [friendGames, setFriendGames] = useState<(UserLibraryEntry & { game: Game; owner: Profile })[]>([]);
+  const [loadingFriendGames, setLoadingFriendGames] = useState(false);
+  const [friendsSearchQuery, setFriendsSearchQuery] = useState('');
+  const [friendsSortBy, setFriendsSortBy] = useState<'name-asc' | 'name-desc'>('name-asc');
+  const [showFriendsSortMenu, setShowFriendsSortMenu] = useState(false);
+  const [friendsLayout, setFriendsLayout] = useState<'grid' | 'list'>('grid');
+  const [showFriendsFilters, setShowFriendsFilters] = useState(false);
+  const [friendGameFilters, setFriendGameFilters] = useState({
+    publishers: [] as string[],
+    gameTypes: [] as string[],
+    gameCategories: [] as string[],
+    years: [] as string[],
+    rankings: [] as string[],
+    playerCounts: [] as number[],
+    minPlays: 0,
+    maxPlays: Infinity,
+    selectedFriends: [] as string[],
+  });
   const [library, setLibrary] = useState<(UserLibraryEntry & { game: Game })[]>([]);
   const [filteredLibrary, setFilteredLibrary] = useState<(UserLibraryEntry & { game: Game })[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,6 +116,28 @@ export default function Library() {
       loadLibrary();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (user && activeTab === 'shared' && !selectedSharedLibrary) {
+      setLoadingFriends(true);
+      getSharedLibraries(user.id)
+        .then(libs => { setSharedLibraries(libs); return libs; })
+        .then(libs => {
+          if (libs.length === 0) return;
+          setLoadingFriendGames(true);
+          return Promise.all(
+            libs.map(lib =>
+              getSharedLibraryGames(lib.owner.id, user.id, 100, 0)
+                .then(games => games.map(g => ({ ...g, owner: lib.owner })))
+                .catch(() => [] as (UserLibraryEntry & { game: Game; owner: Profile })[])
+            )
+          ).then(results => setFriendGames(results.flat()))
+            .finally(() => setLoadingFriendGames(false));
+        })
+        .catch(console.error)
+        .finally(() => setLoadingFriends(false));
+    }
+  }, [user, activeTab, selectedSharedLibrary]);
 
   useEffect(() => {
     setLayout(userLayout);
@@ -518,8 +563,8 @@ export default function Library() {
                 }}
                 className={`flex items-center gap-2 px-6 py-4 font-body text-sm uppercase tracking-wider transition whitespace-nowrap ${
                   activeTab === 'catalogue'
-                    ? 'border-b-2 border-slate-900 text-slate-900'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'border-b-2 border-clay-400 text-clay-400'
+                    : 'text-ink-200 hover:text-ink-400'
                 }`}
               >
                 <LibraryIcon className="w-4 h-4" strokeWidth={1.5} />
@@ -532,8 +577,8 @@ export default function Library() {
                 }}
                 className={`flex items-center gap-2 px-6 py-4 font-body text-sm uppercase tracking-wider transition whitespace-nowrap ${
                   activeTab === 'wishlist'
-                    ? 'border-b-2 border-terracotta-500 text-terracotta-700'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'border-b-2 border-clay-400 text-clay-400'
+                    : 'text-ink-200 hover:text-ink-400'
                 }`}
               >
                 <Heart className="w-4 h-4" strokeWidth={1.5} />
@@ -546,8 +591,8 @@ export default function Library() {
                 }}
                 className={`flex items-center gap-2 px-6 py-4 font-body text-sm uppercase tracking-wider transition whitespace-nowrap ${
                   activeTab === 'shared'
-                    ? 'border-b-2 border-purple-500 text-purple-700'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'border-b-2 border-clay-400 text-clay-400'
+                    : 'text-ink-200 hover:text-ink-400'
                 }`}
               >
                 <Users className="w-4 h-4" strokeWidth={1.5} />
@@ -558,33 +603,269 @@ export default function Library() {
         </div>
 
         {activeTab === 'wishlist' ? (
-          <Wishlist />
+          <Wishlist catalogueFilters={availableFilters} />
         ) : activeTab === 'shared' ? (
           selectedSharedLibrary ? (
             <SharedLibraryView
               library={selectedSharedLibrary}
               onBack={() => setSelectedSharedLibrary(null)}
             />
-          ) : (
-            <div className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-2xl font-display font-light text-slate-900 mb-2">Friend Libraries</h2>
-                <p className="text-slate-600 mb-4">Browse games from your friends' collections</p>
-                <button
-                  onClick={() => setShowFriendsManager(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium text-sm"
-                >
-                  <Users className="w-4 h-4" strokeWidth={1.5} />
-                  Manage Friends
-                </button>
-              </div>
+          ) : (() => {
+            const friendAvailableFilters = {
+              publishers: [...new Set(friendGames.flatMap(e => e.game.publisher ? [e.game.publisher] : []))].sort(),
+              gameTypes: [...new Set(friendGames.flatMap(e => e.game.game_type ?? []))].sort(),
+              gameCategories: [...new Set(friendGames.flatMap(e => e.game.game_category ?? []))].sort(),
+              years: [...new Set(friendGames.flatMap(e => e.game.year ? [e.game.year] : []))].sort(),
+              friends: [...new Set(sharedLibraries.map(l => l.owner.username))].sort(),
+            };
+            const friendsActiveFilters =
+              friendGameFilters.publishers.length +
+              friendGameFilters.gameTypes.length +
+              friendGameFilters.gameCategories.length +
+              friendGameFilters.years.length +
+              friendGameFilters.rankings.length +
+              friendGameFilters.playerCounts.length +
+              (friendGameFilters.minPlays > 0 ? 1 : 0) +
+              (friendGameFilters.maxPlays !== Infinity ? 1 : 0) +
+              friendGameFilters.selectedFriends.length;
+            const toggleFriendFilter = (key: keyof typeof friendGameFilters, value: string | number) =>
+              setFriendGameFilters(prev => ({
+                ...prev,
+                [key]: (prev[key] as (string | number)[]).includes(value)
+                  ? (prev[key] as (string | number)[]).filter(v => v !== value)
+                  : [...(prev[key] as (string | number)[]), value],
+              }));
+            const clearFriendFilters = () => setFriendGameFilters({
+              publishers: [], gameTypes: [], gameCategories: [], years: [], rankings: [],
+              playerCounts: [], minPlays: 0, maxPlays: Infinity, selectedFriends: [],
+            });
+            const filteredFriendGames = friendGames
+              .filter(e => {
+                const q = friendsSearchQuery.toLowerCase();
+                if (q && !e.game.name.toLowerCase().includes(q) && !e.owner.username.toLowerCase().includes(q)) return false;
+                if (friendGameFilters.publishers.length > 0 && !(e.game.publisher && friendGameFilters.publishers.includes(e.game.publisher))) return false;
+                if (friendGameFilters.gameTypes.length > 0 && !e.game.game_type?.some(t => friendGameFilters.gameTypes.includes(t))) return false;
+                if (friendGameFilters.gameCategories.length > 0 && !e.game.game_category?.some(c => friendGameFilters.gameCategories.includes(c))) return false;
+                if (friendGameFilters.years.length > 0 && !(e.game.year && friendGameFilters.years.includes(e.game.year))) return false;
+                if (friendGameFilters.playerCounts.length > 0 && !friendGameFilters.playerCounts.some(n => {
+                  const min = e.game.min_players; const max = e.game.max_players;
+                  if (!min && !max) return false;
+                  if (n === 6) return max != null && max >= 6;
+                  return min != null && max != null && n >= min && n <= max;
+                })) return false;
+                if (friendGameFilters.selectedFriends.length > 0 && !friendGameFilters.selectedFriends.includes(e.owner.username)) return false;
+                return true;
+              })
+              .sort((a, b) => friendsSortBy === 'name-asc'
+                ? a.game.name.localeCompare(b.game.name)
+                : b.game.name.localeCompare(a.game.name));
 
-              <LibrarySelector
-                selectedLibrary={selectedSharedLibrary}
-                onSelectLibrary={setSelectedSharedLibrary}
-              />
-            </div>
-          )
+            return (
+              <div className="mb-8 sm:mb-12 space-y-3 sm:space-y-6">
+                {/* Search bar + Add button */}
+                <div className="flex border border-parchment-300 overflow-hidden">
+                  <div className="flex-1 flex items-center gap-2 px-3 bg-cream">
+                    <Search className="w-4 h-4 text-ink-200 flex-shrink-0" strokeWidth={1.5} />
+                    <input
+                      type="text"
+                      value={friendsSearchQuery}
+                      onChange={(e) => setFriendsSearchQuery(e.target.value)}
+                      placeholder="Search friend games…"
+                      className="flex-1 py-2.5 text-sm font-body bg-transparent focus:outline-none text-ink-600 placeholder:text-ink-200"
+                    />
+                    {friendsSearchQuery && (
+                      <button onClick={() => setFriendsSearchQuery('')}>
+                        <X className="w-4 h-4 text-ink-200 hover:text-ink-400 transition" strokeWidth={1.5} />
+                      </button>
+                    )}
+                  </div>
+                  <button onClick={() => setShowFriendsManager(true)}
+                    className="md:hidden flex items-center gap-1.5 px-3 bg-clay-400 border-l border-clay-500 text-cream flex-shrink-0">
+                    <Users className="w-4 h-4" strokeWidth={1.5} />
+                    <span className="text-[11px] font-body font-semibold tracking-wider">ADD</span>
+                  </button>
+                  <button onClick={() => setShowFriendsManager(true)}
+                    className="hidden md:flex items-center gap-2 bg-ink-600 text-cream px-6 hover:bg-ink-500 transition font-body text-sm border-l border-ink-500">
+                    <Users className="w-4 h-4" strokeWidth={1.5} />
+                    <span>Add Friend's Library</span>
+                  </button>
+                </div>
+
+                {/* Filter row */}
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      onClick={() => setShowFriendsFilters(!showFriendsFilters)}
+                      className={`flex items-center gap-2 px-4 py-2 border text-xs font-body uppercase tracking-wider transition flex-shrink-0 ${
+                        showFriendsFilters || friendsActiveFilters > 0
+                          ? 'bg-clay-400 text-cream border-clay-500'
+                          : 'bg-cream text-ink-400 border-parchment-300 hover:bg-parchment-100'
+                      }`}
+                    >
+                      <Filter className="w-3.5 h-3.5" strokeWidth={1.5} />
+                      <span>Filters</span>
+                      {friendsActiveFilters > 0 && (
+                        <span className="bg-white/25 text-cream text-xs leading-none px-1.5 py-0.5">{friendsActiveFilters}</span>
+                      )}
+                    </button>
+                    {friendsActiveFilters > 0 && (
+                      <button onClick={clearFriendFilters}
+                        className="text-xs font-body text-ink-200 hover:text-ink-400 underline px-1 transition">
+                        Clear all
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <div className="relative flex-1 sm:flex-initial">
+                      <button onClick={() => setShowFriendsSortMenu(!showFriendsSortMenu)}
+                        className="flex items-center justify-between gap-2 w-full bg-cream border border-parchment-300 px-3 py-2 text-xs font-body text-ink-400 hover:bg-parchment-100 transition">
+                        <span>{friendsSortBy === 'name-asc' ? 'Name (A–Z)' : 'Name (Z–A)'}</span>
+                        <ChevronDown className="w-3.5 h-3.5 text-ink-200 flex-shrink-0" strokeWidth={1.5} />
+                      </button>
+                      {showFriendsSortMenu && (
+                        <>
+                          <div className="fixed inset-0 z-[100]" onClick={() => setShowFriendsSortMenu(false)} />
+                          <div className="absolute right-0 top-full mt-1 w-40 bg-cream border border-parchment-300 shadow-lg py-1 z-[101]">
+                            {([{ value: 'name-asc', label: 'Name (A–Z)' }, { value: 'name-desc', label: 'Name (Z–A)' }] as const).map(({ value, label }) => (
+                              <button key={value} onClick={() => { setFriendsSortBy(value); setShowFriendsSortMenu(false); }}
+                                className="w-full px-4 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2">
+                                <Check className={`w-3.5 h-3.5 flex-shrink-0 ${friendsSortBy === value ? 'opacity-100' : 'opacity-0'}`} strokeWidth={2} />
+                                <span>{label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex border border-parchment-300 overflow-hidden">
+                      <Tooltip content="Grid view">
+                        <button onClick={() => setFriendsLayout('grid')}
+                          className={`p-2 transition ${friendsLayout === 'grid' ? 'bg-clay-400 text-cream' : 'bg-cream text-ink-300 hover:bg-parchment-100'}`}>
+                          <Grid3x3 className="w-3.5 h-3.5" strokeWidth={1.5} />
+                        </button>
+                      </Tooltip>
+                      <Tooltip content="List view">
+                        <button onClick={() => setFriendsLayout('list')}
+                          className={`p-2 border-l border-parchment-300 transition ${friendsLayout === 'list' ? 'bg-clay-400 text-cream' : 'bg-cream text-ink-300 hover:bg-parchment-100'}`}>
+                          <List className="w-3.5 h-3.5" strokeWidth={1.5} />
+                        </button>
+                      </Tooltip>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filter panel — same structure as My Catalog */}
+                {showFriendsFilters && (
+                  <div className="bg-cream border border-parchment-300 p-3 sm:p-6 space-y-4 sm:space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                      <MultiSelectDropdown title="Publisher" options={availableFilters.publishers}
+                        selected={friendGameFilters.publishers}
+                        onToggle={(v) => toggleFriendFilter('publishers', v)}
+                        onClear={() => setFriendGameFilters(p => ({ ...p, publishers: [] }))} />
+                      <MultiSelectDropdown title="Game Type" options={availableFilters.gameTypes}
+                        selected={friendGameFilters.gameTypes}
+                        onToggle={(v) => toggleFriendFilter('gameTypes', v)}
+                        onClear={() => setFriendGameFilters(p => ({ ...p, gameTypes: [] }))} />
+                      <MultiSelectDropdown title="Category" options={availableFilters.gameCategories}
+                        selected={friendGameFilters.gameCategories}
+                        onToggle={(v) => toggleFriendFilter('gameCategories', v)}
+                        onClear={() => setFriendGameFilters(p => ({ ...p, gameCategories: [] }))} />
+                      <MultiSelectDropdown title="Year" options={availableFilters.years}
+                        selected={friendGameFilters.years}
+                        onToggle={(v) => toggleFriendFilter('years', v)}
+                        onClear={() => setFriendGameFilters(p => ({ ...p, years: [] }))} />
+                      <FilterSection title="Ranking" options={['high', 'medium', 'low']}
+                        selected={friendGameFilters.rankings}
+                        onToggle={(v) => toggleFriendFilter('rankings', v)} />
+                      <div>
+                        <h4 className="text-xs font-body font-medium text-ink-400 uppercase tracking-wider mb-3">Number of Plays</h4>
+                        <div className="space-y-2">
+                          <div>
+                            <label className="text-xs font-body text-ink-300">Minimum</label>
+                            <input type="number" min="0" value={friendGameFilters.minPlays}
+                              onChange={(e) => setFriendGameFilters(p => ({ ...p, minPlays: parseInt(e.target.value) || 0 }))}
+                              className="w-full mt-1 px-3 py-2 border border-parchment-300 bg-cream text-xs font-body text-ink-400 focus:outline-none" />
+                          </div>
+                          <div>
+                            <label className="text-xs font-body text-ink-300">Maximum</label>
+                            <input type="number" min="0" value={friendGameFilters.maxPlays === Infinity ? '' : friendGameFilters.maxPlays}
+                              onChange={(e) => setFriendGameFilters(p => ({ ...p, maxPlays: e.target.value ? parseInt(e.target.value) : Infinity }))}
+                              placeholder="No limit"
+                              className="w-full mt-1 px-3 py-2 border border-parchment-300 bg-cream text-xs font-body text-ink-400 focus:outline-none placeholder:text-ink-200" />
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-body font-medium text-ink-400 uppercase tracking-wider mb-3">Number of Players</h4>
+                        <div className="space-y-2">
+                          {[1, 2, 3, 4, 5, 6].map((count) => (
+                            <label key={count} className="flex items-center gap-2 cursor-pointer group">
+                              <input type="checkbox"
+                                checked={friendGameFilters.playerCounts.includes(count)}
+                                onChange={() => toggleFriendFilter('playerCounts', count)}
+                                className="w-3.5 h-3.5 border-parchment-300 text-ink-500 focus:ring-ink-400 cursor-pointer" />
+                              <span className="text-xs font-body text-ink-400 group-hover:text-ink-600">
+                                {count === 6 ? '6+' : count} {count === 1 ? 'player' : 'players'}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      {friendAvailableFilters.friends.length > 1 && (
+                        <FilterSection title="Friend Library" options={friendAvailableFilters.friends}
+                          selected={friendGameFilters.selectedFriends}
+                          onToggle={(v) => toggleFriendFilter('selectedFriends', v)} />
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Game list */}
+                {loadingFriends || loadingFriendGames ? (
+                  <div className="flex items-center justify-center py-20">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ink-400" />
+                  </div>
+                ) : sharedLibraries.length === 0 ? (
+                  <div className="text-center py-20">
+                    <div className="bg-parchment-100 w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                      <Users className="w-10 h-10 text-ink-200" strokeWidth={1.5} />
+                    </div>
+                    <h3 className="text-xl font-display font-light text-ink-600 mb-2">No friend libraries yet</h3>
+                    <p className="text-ink-400 mb-6">Add friends to browse their game collections</p>
+                    <button onClick={() => setShowFriendsManager(true)}
+                      className="inline-flex items-center gap-2 bg-cream border border-parchment-300 text-xs font-body text-ink-400 uppercase tracking-wider px-6 py-2 hover:bg-parchment-100 transition">
+                      <Users className="w-3.5 h-3.5" strokeWidth={1.5} />
+                      <span>Add Friend's Library</span>
+                    </button>
+                  </div>
+                ) : filteredFriendGames.length === 0 ? (
+                  <div className="text-center py-20">
+                    <div className="bg-parchment-100 w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                      <Users className="w-10 h-10 text-ink-200" strokeWidth={1.5} />
+                    </div>
+                    <h3 className="text-xl font-display font-light text-ink-600 mb-2">No games match your filters</h3>
+                    <p className="text-ink-400 mb-6">Try adjusting your search or filters</p>
+                  </div>
+                ) : friendsLayout === 'list' ? (
+                  <div className="space-y-3">
+                    {filteredFriendGames.map((entry) => (
+                      <GameCard key={`${entry.owner.id}-${entry.id}`} entry={entry}
+                        layout="list" isShared={true} owner={entry.owner}
+                        onToggleFavorite={() => {}} onToggleForSale={() => {}} onDelete={() => {}} onEdit={() => {}} onAddPlay={() => {}} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                    {filteredFriendGames.map((entry) => (
+                      <GameCard key={`${entry.owner.id}-${entry.id}`} entry={entry}
+                        layout="grid" isShared={true} owner={entry.owner}
+                        onToggleFavorite={() => {}} onToggleForSale={() => {}} onDelete={() => {}} onEdit={() => {}} onAddPlay={() => {}} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()
         ) : (
           <div>
         <div className="mb-8 sm:mb-12 space-y-3 sm:space-y-6">
@@ -799,46 +1080,36 @@ export default function Library() {
           </div>{/* end hidden md:block desktop filter row */}
 
           {showFilters && (
-            <div className="bg-white rounded-lg border border-container p-3 sm:p-6 space-y-4 sm:space-y-6">
+            <div className="bg-cream border border-parchment-300 p-3 sm:p-6 space-y-4 sm:space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {availableFilters.publishers.length > 0 && (
-                  <MultiSelectDropdown
-                    title="Publisher"
-                    options={availableFilters.publishers}
-                    selected={filters.publishers}
-                    onToggle={(value) => toggleFilterValue('publishers', value)}
-                    onClear={() => setFilters({ ...filters, publishers: [] })}
-                  />
-                )}
-
-                {availableFilters.gameTypes.length > 0 && (
-                  <FilterSection
-                    title="Game Type"
-                    options={availableFilters.gameTypes}
-                    selected={filters.gameTypes}
-                    onToggle={(value) => toggleFilterValue('gameTypes', value)}
-                  />
-                )}
-
-                {availableFilters.gameCategories.length > 0 && (
-                  <FilterSection
-                    title="Category"
-                    options={availableFilters.gameCategories}
-                    selected={filters.gameCategories}
-                    onToggle={(value) => toggleFilterValue('gameCategories', value)}
-                  />
-                )}
-
-                {availableFilters.years.length > 0 && (
-                  <MultiSelectDropdown
-                    title="Year"
-                    options={availableFilters.years}
-                    selected={filters.years}
-                    onToggle={(value) => toggleFilterValue('years', value)}
-                    onClear={() => setFilters({ ...filters, years: [] })}
-                  />
-                )}
-
+                <MultiSelectDropdown
+                  title="Publisher"
+                  options={availableFilters.publishers}
+                  selected={filters.publishers}
+                  onToggle={(value) => toggleFilterValue('publishers', value)}
+                  onClear={() => setFilters({ ...filters, publishers: [] })}
+                />
+                <MultiSelectDropdown
+                  title="Game Type"
+                  options={availableFilters.gameTypes}
+                  selected={filters.gameTypes}
+                  onToggle={(value) => toggleFilterValue('gameTypes', value)}
+                  onClear={() => setFilters({ ...filters, gameTypes: [] })}
+                />
+                <MultiSelectDropdown
+                  title="Category"
+                  options={availableFilters.gameCategories}
+                  selected={filters.gameCategories}
+                  onToggle={(value) => toggleFilterValue('gameCategories', value)}
+                  onClear={() => setFilters({ ...filters, gameCategories: [] })}
+                />
+                <MultiSelectDropdown
+                  title="Year"
+                  options={availableFilters.years}
+                  selected={filters.years}
+                  onToggle={(value) => toggleFilterValue('years', value)}
+                  onClear={() => setFilters({ ...filters, years: [] })}
+                />
                 <FilterSection
                   title="Ranking"
                   options={['high', 'medium', 'low']}
@@ -847,10 +1118,10 @@ export default function Library() {
                 />
 
                 <div>
-                  <h4 className="text-sm font-medium text-slate-900 mb-3">Number of Plays</h4>
+                  <h4 className="text-xs font-body font-medium text-ink-400 uppercase tracking-wider mb-3">Number of Plays</h4>
                   <div className="space-y-2">
                     <div>
-                      <label className="text-xs text-slate-600">Minimum</label>
+                      <label className="text-xs font-body text-ink-300">Minimum</label>
                       <input
                         type="number"
                         min="0"
@@ -858,11 +1129,11 @@ export default function Library() {
                         onChange={(e) =>
                           setFilters({ ...filters, minPlays: parseInt(e.target.value) || 0 })
                         }
-                        className="w-full mt-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none"
+                        className="w-full mt-1 px-3 py-2 border border-parchment-300 bg-cream text-xs font-body text-ink-400 focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-slate-600">Maximum</label>
+                      <label className="text-xs font-body text-ink-300">Maximum</label>
                       <input
                         type="number"
                         min="0"
@@ -874,17 +1145,17 @@ export default function Library() {
                           })
                         }
                         placeholder="No limit"
-                        className="w-full mt-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none"
+                        className="w-full mt-1 px-3 py-2 border border-parchment-300 bg-cream text-xs font-body text-ink-400 focus:outline-none placeholder:text-ink-200"
                       />
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-medium text-slate-900 mb-3">Number of Players</h4>
+                  <h4 className="text-xs font-body font-medium text-ink-400 uppercase tracking-wider mb-3">Number of Players</h4>
                   <div className="space-y-2">
                     {[1, 2, 3, 4, 5, 6].map((count) => (
-                      <label key={count} className="flex items-center space-x-2 cursor-pointer group">
+                      <label key={count} className="flex items-center gap-2 cursor-pointer group">
                         <input
                           type="checkbox"
                           checked={filters.playerCounts.includes(count)}
@@ -896,9 +1167,9 @@ export default function Library() {
                                 : [...prev.playerCounts, count],
                             }));
                           }}
-                          className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer"
+                          className="w-3.5 h-3.5 border-parchment-300 text-ink-500 focus:ring-ink-400 cursor-pointer"
                         />
-                        <span className="text-sm text-slate-700 group-hover:text-slate-900">
+                        <span className="text-xs font-body text-ink-400 group-hover:text-ink-600">
                           {count === 6 ? '6+' : count} {count === 1 ? 'player' : 'players'}
                         </span>
                       </label>
@@ -1062,120 +1333,3 @@ export default function Library() {
   );
 }
 
-function FilterSection({
-  title,
-  options,
-  selected,
-  onToggle,
-}: {
-  title: string;
-  options: string[];
-  selected: string[];
-  onToggle: (value: string) => void;
-}) {
-  const [showAll, setShowAll] = useState(false);
-  const displayOptions = showAll ? options : options.slice(0, 5);
-
-  return (
-    <div>
-      <h4 className="text-sm font-medium text-slate-900 mb-3">{title}</h4>
-      <div className="space-y-2">
-        {displayOptions.map((option) => (
-          <label key={option} className="flex items-center space-x-2 cursor-pointer group">
-            <input
-              type="checkbox"
-              checked={selected.includes(option)}
-              onChange={() => onToggle(option)}
-              className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer"
-            />
-            <span className="text-sm text-slate-700 group-hover:text-slate-900 capitalize">
-              {option}
-            </span>
-          </label>
-        ))}
-        {options.length > 5 && (
-          <button
-            onClick={() => setShowAll(!showAll)}
-            className="text-xs text-slate-600 hover:text-slate-900 underline"
-          >
-            {showAll ? 'Show less' : `Show ${options.length - 5} more`}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function MultiSelectDropdown({
-  title,
-  options,
-  selected,
-  onToggle,
-  onClear,
-}: {
-  title: string;
-  options: string[];
-  selected: string[];
-  onToggle: (value: string) => void;
-  onClear?: () => void;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <div className="relative">
-      <div className="flex items-center justify-between mb-2">
-        <h4 className="text-xs font-body font-medium text-ink-400 uppercase tracking-wider">{title}</h4>
-        {selected.length > 0 && onClear && (
-          <button
-            type="button"
-            onClick={onClear}
-            className="text-xs font-body text-ink-300 hover:text-ink-500 underline"
-            title="Clear all selections"
-          >
-            Clear
-          </button>
-        )}
-      </div>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-3 py-2 text-left bg-cream border border-parchment-300 text-xs font-body text-ink-400 hover:bg-parchment-100 transition flex items-center justify-between"
-        title={selected.length === 0 ? `Select ${title.toLowerCase()}` : `${selected.length} ${title.toLowerCase()} selected`}
-      >
-        <span className="truncate">
-          {selected.length === 0 ? `Select ${title.toLowerCase()}...` : `${selected.length} selected`}
-        </span>
-        <ChevronDown className={`w-3.5 h-3.5 flex-shrink-0 ml-2 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
-      {isOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-[100]"
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="absolute z-[101] w-full mt-1 bg-cream border border-parchment-300 shadow-lg max-h-60 overflow-y-auto">
-            {options.length === 0 ? (
-              <div className="px-4 py-2 text-xs font-body text-ink-300">No options available</div>
-            ) : (
-              options.map((option) => (
-                <label
-                  key={option}
-                  className="flex items-center space-x-2 px-4 py-2 hover:bg-parchment-100 cursor-pointer"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(option)}
-                    onChange={() => onToggle(option)}
-                    className="w-3.5 h-3.5 border-parchment-300 text-ink-500 focus:ring-ink-400 cursor-pointer"
-                  />
-                  <span className="text-xs font-body text-ink-400 capitalize">{option}</span>
-                </label>
-              ))
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}

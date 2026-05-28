@@ -19,10 +19,19 @@ import WishlistCard from './WishlistCard';
 import BarcodeScanner from './BarcodeScanner';
 import EditWishlistModal from './EditWishlistModal';
 import Tooltip from './Tooltip';
+import MultiSelectDropdown from './MultiSelectDropdown';
+import FilterSection from './FilterSection';
 
 type SortOption = 'name-asc' | 'name-desc' | 'date-added-desc' | 'date-added-asc' | 'priority-desc' | 'priority-asc';
 
-export default function Wishlist() {
+interface CatalogueFilters {
+  publishers: string[];
+  gameTypes: string[];
+  gameCategories: string[];
+  years: string[];
+}
+
+export default function Wishlist({ catalogueFilters }: { catalogueFilters?: CatalogueFilters }) {
   const { user, refreshProfile } = useAuth();
   const [wishlist, setWishlist] = useState<(UserWishlistEntry & { game: Game })[]>([]);
   const [filteredWishlist, setFilteredWishlist] = useState<(UserWishlistEntry & { game: Game })[]>([]);
@@ -45,28 +54,41 @@ export default function Wishlist() {
     gameTypes: [] as string[],
     gameCategories: [] as string[],
     years: [] as string[],
+    rankings: [] as string[],
+    playerCounts: [] as number[],
+    minPlays: 0,
+    maxPlays: Infinity,
   });
 
-  // const availableFilters = useMemo(() => {
-  //   const publishers = new Set<string>();
-  //   const gameTypes = new Set<string>();
-  //   const gameCategories = new Set<string>();
-  //   const years = new Set<string>();
+  const availableFilters = useMemo(() => {
+    const publishers = new Set<string>();
+    const gameTypes = new Set<string>();
+    const gameCategories = new Set<string>();
+    const years = new Set<string>();
 
-  //   wishlist.forEach((entry) => {
-  //     if (entry.game.publisher) publishers.add(entry.game.publisher);
-  //     if (entry.game.year) years.add(entry.game.year);
-  //     entry.game.game_type?.forEach((type) => gameTypes.add(type));
-  //     entry.game.game_category?.forEach((cat) => gameCategories.add(cat));
-  //   });
+    wishlist.forEach((entry) => {
+      if (entry.game.publisher) publishers.add(entry.game.publisher);
+      if (entry.game.year) years.add(entry.game.year);
+      entry.game.game_type?.forEach((type) => gameTypes.add(type));
+      entry.game.game_category?.forEach((cat) => gameCategories.add(cat));
+    });
 
-  //   return {
-  //     publishers: Array.from(publishers).sort(),
-  //     gameTypes: Array.from(gameTypes).sort(),
-  //     gameCategories: Array.from(gameCategories).sort(),
-  //     years: Array.from(years).sort(),
-  //   };
-  // }, [wishlist]);
+    return {
+      publishers: Array.from(publishers).sort(),
+      gameTypes: Array.from(gameTypes).sort(),
+      gameCategories: Array.from(gameCategories).sort(),
+      years: Array.from(years).sort(),
+    };
+  }, [wishlist]);
+
+  const toggleFilterValue = (key: keyof typeof filters, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: prev[key].includes(value)
+        ? prev[key].filter((v: string) => v !== value)
+        : [...prev[key], value],
+    }));
+  };
 
   useEffect(() => {
     if (user) {
@@ -125,6 +147,18 @@ export default function Wishlist() {
 
     if (filters.years.length > 0) {
       filtered = filtered.filter((entry) => entry.game.year && filters.years.includes(entry.game.year));
+    }
+
+    if (filters.playerCounts.length > 0) {
+      filtered = filtered.filter((entry) => {
+        const min = entry.game.min_players;
+        const max = entry.game.max_players;
+        if (!min && !max) return false;
+        return filters.playerCounts.some((count) => {
+          if (count === 6) return max != null && max >= 6;
+          return min != null && max != null && count >= min && count <= max;
+        });
+      });
     }
 
     const priorityOrder = { high: 3, medium: 2, low: 1 };
@@ -307,6 +341,10 @@ export default function Wishlist() {
       gameTypes: [],
       gameCategories: [],
       years: [],
+      rankings: [],
+      playerCounts: [],
+      minPlays: 0,
+      maxPlays: Infinity,
     });
     setPriorityFilter('all');
   };
@@ -318,6 +356,10 @@ export default function Wishlist() {
     count += filters.gameTypes.length;
     count += filters.gameCategories.length;
     count += filters.years.length;
+    count += filters.rankings.length;
+    count += filters.playerCounts.length;
+    if (filters.minPlays > 0) count++;
+    if (filters.maxPlays !== Infinity) count++;
     return count;
   }, [priorityFilter, filters]);
 
@@ -369,10 +411,14 @@ export default function Wishlist() {
               <div className="relative">
                 <button
                   onClick={() => setShowPriorityMenu(!showPriorityMenu)}
-                  className="flex items-center gap-2 px-4 py-2 border border-parchment-300 bg-cream text-xs font-body uppercase tracking-wider hover:bg-parchment-100 transition"
+                  className={`flex items-center gap-2 px-4 py-2 border text-xs font-body uppercase tracking-wider transition ${
+                    priorityFilter !== 'all'
+                      ? 'bg-clay-400 text-cream border-clay-500'
+                      : 'bg-cream text-ink-400 border-parchment-300 hover:bg-parchment-100'
+                  }`}
                 >
                   <span>{priorityFilter === 'all' ? 'All Priorities' : priorityFilter === 'high' ? 'High Priority' : priorityFilter === 'medium' ? 'Medium Priority' : 'Low Priority'}</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-ink-200" strokeWidth={1.5} />
+                  <ChevronDown className={`w-3.5 h-3.5 ${priorityFilter !== 'all' ? 'text-cream/70' : 'text-ink-200'}`} strokeWidth={1.5} />
                 </button>
                 {showPriorityMenu && (
                   <>
@@ -460,6 +506,86 @@ export default function Wishlist() {
               </div>
             </div>
           </div>
+
+          {showFilters && (
+            <div className="bg-cream border border-parchment-300 p-3 sm:p-6 space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                <MultiSelectDropdown
+                  title="Publisher"
+                  options={catalogueFilters?.publishers ?? availableFilters.publishers}
+                  selected={filters.publishers}
+                  onToggle={(value) => toggleFilterValue('publishers', value)}
+                  onClear={() => setFilters({ ...filters, publishers: [] })}
+                />
+                <MultiSelectDropdown
+                  title="Game Type"
+                  options={catalogueFilters?.gameTypes ?? availableFilters.gameTypes}
+                  selected={filters.gameTypes}
+                  onToggle={(value) => toggleFilterValue('gameTypes', value)}
+                  onClear={() => setFilters({ ...filters, gameTypes: [] })}
+                />
+                <MultiSelectDropdown
+                  title="Category"
+                  options={catalogueFilters?.gameCategories ?? availableFilters.gameCategories}
+                  selected={filters.gameCategories}
+                  onToggle={(value) => toggleFilterValue('gameCategories', value)}
+                  onClear={() => setFilters({ ...filters, gameCategories: [] })}
+                />
+                <MultiSelectDropdown
+                  title="Year"
+                  options={catalogueFilters?.years ?? availableFilters.years}
+                  selected={filters.years}
+                  onToggle={(value) => toggleFilterValue('years', value)}
+                  onClear={() => setFilters({ ...filters, years: [] })}
+                />
+                <FilterSection
+                  title="Ranking"
+                  options={['high', 'medium', 'low']}
+                  selected={filters.rankings}
+                  onToggle={(value) => toggleFilterValue('rankings', value)}
+                />
+                <div>
+                  <h4 className="text-xs font-body font-medium text-ink-400 uppercase tracking-wider mb-3">Number of Plays</h4>
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-xs font-body text-ink-300">Minimum</label>
+                      <input type="number" min="0" value={filters.minPlays}
+                        onChange={(e) => setFilters({ ...filters, minPlays: parseInt(e.target.value) || 0 })}
+                        className="w-full mt-1 px-3 py-2 border border-parchment-300 bg-cream text-xs font-body text-ink-400 focus:outline-none" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-body text-ink-300">Maximum</label>
+                      <input type="number" min="0" value={filters.maxPlays === Infinity ? '' : filters.maxPlays}
+                        onChange={(e) => setFilters({ ...filters, maxPlays: e.target.value ? parseInt(e.target.value) : Infinity })}
+                        placeholder="No limit"
+                        className="w-full mt-1 px-3 py-2 border border-parchment-300 bg-cream text-xs font-body text-ink-400 focus:outline-none placeholder:text-ink-200" />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-xs font-body font-medium text-ink-400 uppercase tracking-wider mb-3">Number of Players</h4>
+                  <div className="space-y-2">
+                    {[1, 2, 3, 4, 5, 6].map((count) => (
+                      <label key={count} className="flex items-center gap-2 cursor-pointer group">
+                        <input type="checkbox"
+                          checked={filters.playerCounts.includes(count)}
+                          onChange={() => setFilters(prev => ({
+                            ...prev,
+                            playerCounts: prev.playerCounts.includes(count)
+                              ? prev.playerCounts.filter(c => c !== count)
+                              : [...prev.playerCounts, count],
+                          }))}
+                          className="w-3.5 h-3.5 border-parchment-300 text-ink-500 focus:ring-ink-400 cursor-pointer" />
+                        <span className="text-xs font-body text-ink-400 group-hover:text-ink-600">
+                          {count === 6 ? '6+' : count} {count === 1 ? 'player' : 'players'}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {loading ? (

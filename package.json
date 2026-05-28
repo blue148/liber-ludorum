@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "seed-test-users": "tsx database/seed-test-users.ts",
     "backfill-bgg-ids": "tsx scripts/backfill-bgg-ids.ts",
     "enrich-bgg": "tsx scripts/enrich-games-with-bgg.ts",
     "flutter": "cd flutter_app && flutter run --profile --no-enable-impeller ",

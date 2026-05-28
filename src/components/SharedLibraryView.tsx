@@ -5,6 +5,7 @@ import { getSharedLibraryGames, searchSharedLibrary } from '../lib/games';
 import { useAuth } from '../contexts/AuthContext';
 import GameCard from './GameCard';
 import Tooltip from './Tooltip';
+import FilterSection from './FilterSection';
 
 interface SharedLibraryViewProps {
   library: SharedLibrary;
@@ -574,47 +575,3 @@ export default function SharedLibraryView({ library, onBack }: SharedLibraryView
   );
 }
 
-// Filter Section Component (reused from Library.tsx)
-function FilterSection({
-  title,
-  options,
-  selected,
-  onToggle,
-}: {
-  title: string;
-  options: string[];
-  selected: string[];
-  onToggle: (value: string) => void;
-}) {
-  const [showAll, setShowAll] = useState(false);
-  const displayOptions = showAll ? options : options.slice(0, 5);
-
-  return (
-    <div>
-      <h4 className="text-sm font-medium text-slate-900 mb-3">{title}</h4>
-      <div className="space-y-2">
-        {displayOptions.map((option) => (
-          <label key={option} className="flex items-center space-x-2 cursor-pointer group">
-            <input
-              type="checkbox"
-              checked={selected.includes(option)}
-              onChange={() => onToggle(option)}
-              className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer"
-            />
-            <span className="text-sm text-slate-700 group-hover:text-slate-900 capitalize">
-              {option}
-            </span>
-          </label>
-        ))}
-        {options.length > 5 && (
-          <button
-            onClick={() => setShowAll(!showAll)}
-            className="text-xs text-slate-600 hover:text-slate-900 underline"
-          >
-            {showAll ? 'Show less' : `Show ${options.length - 5} more`}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
