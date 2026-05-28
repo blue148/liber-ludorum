@@ -17,9 +17,11 @@ const MeepleIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const bottomNavColor = '#b85c28';
+
 function AppContent() {
   const { user, profile, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'library' | 'gameNiteTools' | 'admin'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'library' | 'gameNiteTools' | 'admin' | 'profile'>('dashboard');
   const [selectedTool, setSelectedTool] = useState<Tool | undefined>(undefined);
   const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
 
@@ -37,18 +39,19 @@ function AppContent() {
 
   const isAdmin = profile?.is_admin || false;
 
+  // ── Wooden disc indicator (desktop nav only) ────────────────────────────────
   const discColors: Record<string, { base: string; light: string; dark: string }> = {
-    dashboard:    { base: '#b85c28', light: '#d4855a', dark: '#6b3412' }, // terracotta
-    library:      { base: '#3a7040', light: '#5d9560', dark: '#163720' }, // forest
-    gameNiteTools:{ base: '#2e8282', light: '#52a5a5', dark: '#0d3e3e' }, // sky
-    admin:        { base: '#74389a', light: '#9a62b8', dark: '#2e0d46' }, // plum
+    dashboard:    { base: '#b85c28', light: '#d4855a', dark: '#6b3412' },
+    library:      { base: '#3a7040', light: '#5d9560', dark: '#163720' },
+    gameNiteTools:{ base: '#2e8282', light: '#52a5a5', dark: '#0d3e3e' },
+    admin:        { base: '#74389a', light: '#9a62b8', dark: '#2e0d46' },
   };
 
   const woodenDisc = (tab: string, pos?: React.CSSProperties) => {
     const c = discColors[tab];
     const discW = 22;
-    const topH = 12;  // ellipse height (squashed to simulate ~40° viewing angle)
-    const sideH = 7;  // visible side/rim thickness below the equator
+    const topH = 12;
+    const sideH = 7;
     const wrapH = Math.floor(topH / 2) + sideH;
 
     const defaultPos: React.CSSProperties = {
@@ -62,7 +65,6 @@ function AppContent() {
         className="pointer-events-none z-10"
         style={{ position: 'absolute', width: discW, height: wrapH, ...(pos ?? defaultPos) }}
       >
-        {/* Visible side/rim — rendered first so top face overlaps it */}
         <span
           style={{
             position: 'absolute',
@@ -75,7 +77,6 @@ function AppContent() {
             boxShadow: '0 4px 8px rgba(0,0,0,0.55)',
           }}
         />
-        {/* Top face — ellipse with wood grain texture */}
         <span
           style={{
             position: 'absolute',
@@ -96,62 +97,72 @@ function AppContent() {
     );
   };
 
+  // ── Bottom nav items ────────────────────────────────────────────────────────
+  const bottomNavItems = [
+    { tab: 'dashboard'     as const, icon: BarChart3, label: 'Dashboard'  },
+    { tab: 'gameNiteTools' as const, icon: Sparkles,  label: 'Game Night' },
+    { tab: 'library'       as const, icon: BookOpen,  label: 'My Games'   },
+    ...(isAdmin ? [{ tab: 'admin' as const, icon: Shield, label: 'Admin' }] : []),
+  ];
+
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="sticky top-0 z-50 border-b border-slate-200 bg-white overflow-visible">
+
+      {/* ── Desktop top nav (hidden on mobile) ───────────────────────────────── */}
+      <div className="hidden md:block sticky top-0 z-50 border-b border-slate-200 bg-white overflow-visible">
         <div className="max-w-7xl mx-auto px-4">
           <nav className="flex items-center justify-between">
             <div className="flex items-center space-x-8">
               <div className="flex items-center space-x-2 py-4">
                 <MeepleIcon className="w-8 h-8 text-slate-900" />
                 <h1 className="text-2xl font-bold text-slate-900 font-display">
-                  Libre Ludorum
+                  Churtern•Play
                 </h1>
               </div>
 
               <div className="flex space-x-1">
-              <button
-                onClick={() => setActiveTab('dashboard')}
-                className={`relative flex items-center space-x-2 px-6 py-4 font-medium transition ${
-                  activeTab === 'dashboard' ? 'text-slate-900' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <BarChart3 className="w-5 h-5" />
-                <span>Dashboard</span>
-                {activeTab === 'dashboard' && woodenDisc('dashboard')}
-              </button>
-              <button
-                onClick={() => setActiveTab('library')}
-                className={`relative flex items-center space-x-2 px-6 py-4 font-medium transition ${
-                  activeTab === 'library' ? 'text-slate-900' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <BookOpen className="w-5 h-5" />
-                <span>My Catalogue</span>
-                {activeTab === 'library' && woodenDisc('library', { top: 7, right: 18 })}
-              </button>
-              <button
-                onClick={() => setActiveTab('gameNiteTools')}
-                className={`relative flex items-center space-x-2 px-6 py-4 font-medium transition ${
-                  activeTab === 'gameNiteTools' ? 'text-slate-900' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Sparkles className="w-5 h-5" />
-                <span>Game Nite Tools</span>
-                {activeTab === 'gameNiteTools' && woodenDisc('gameNiteTools', { bottom: 11, left: 50 })}
-              </button>
-              {isAdmin && (
                 <button
-                  onClick={() => setActiveTab('admin')}
+                  onClick={() => setActiveTab('dashboard')}
                   className={`relative flex items-center space-x-2 px-6 py-4 font-medium transition ${
-                    activeTab === 'admin' ? 'text-slate-900' : 'text-slate-600 hover:text-slate-900'
+                    activeTab === 'dashboard' ? 'text-slate-900' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <Shield className="w-5 h-5" />
-                  <span>Admin</span>
-                  {activeTab === 'admin' && woodenDisc('admin')}
+                  <BarChart3 className="w-5 h-5" />
+                  <span>Dashboard</span>
+                  {activeTab === 'dashboard' && woodenDisc('dashboard')}
                 </button>
-              )}
+                <button
+                  onClick={() => setActiveTab('library')}
+                  className={`relative flex items-center space-x-2 px-6 py-4 font-medium transition ${
+                    activeTab === 'library' ? 'text-slate-900' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <BookOpen className="w-5 h-5" />
+                  <span>My Catalogue</span>
+                  {activeTab === 'library' && woodenDisc('library', { top: 7, right: 18 })}
+                </button>
+                <button
+                  onClick={() => setActiveTab('gameNiteTools')}
+                  className={`relative flex items-center space-x-2 px-6 py-4 font-medium transition ${
+                    activeTab === 'gameNiteTools' ? 'text-slate-900' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Sparkles className="w-5 h-5" />
+                  <span>Game Nite Tools</span>
+                  {activeTab === 'gameNiteTools' && woodenDisc('gameNiteTools', { bottom: 11, left: 50 })}
+                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => setActiveTab('admin')}
+                    className={`relative flex items-center space-x-2 px-6 py-4 font-medium transition ${
+                      activeTab === 'admin' ? 'text-slate-900' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <Shield className="w-5 h-5" />
+                    <span>Admin</span>
+                    {activeTab === 'admin' && woodenDisc('admin')}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -161,28 +172,104 @@ function AppContent() {
                 className="flex items-center space-x-2 px-6 py-4 font-medium transition text-slate-600 hover:text-slate-900"
               >
                 <MeepleIcon className="w-5 h-5" />
-                <span className="hidden sm:inline">{profile.username}</span>
+                <span>{profile.username}</span>
               </button>
             )}
           </nav>
         </div>
       </div>
 
+      {/* ── Mobile slim header (hidden on desktop) ───────────────────────────── */}
+      <div className="md:hidden sticky top-0 z-50 bg-white border-b border-parchment-300">
+        <div className="flex items-center justify-between px-4 py-3 gap-3">
+          <div className="flex items-center gap-2">
+            <MeepleIcon className="w-6 h-6 text-ink-600" />
+            <h1 className="font-display font-light text-2xl text-ink-600 tracking-wide">Churtern•Play</h1>
+          </div>
+          {profile && (
+            <button
+              onClick={() => setIsProfileDrawerOpen(true)}
+              className="w-8 h-8 rounded-full bg-clay-400 flex items-center justify-center flex-shrink-0"
+            >
+              <span className="text-cream font-body text-sm font-semibold">
+                {profile.username.charAt(0).toUpperCase()}
+              </span>
+            </button>
+          )}
+        </div>
+      </div>
+
       <ProfileDrawer isOpen={isProfileDrawerOpen} onClose={() => setIsProfileDrawerOpen(false)} />
 
-      {activeTab === 'dashboard' && (
-        <Dashboard
-          onNavigate={(tab, params) => {
-            setActiveTab(tab);
-            if (tab === 'gameNiteTools' && params?.tool) {
-              setSelectedTool(params.tool);
-            }
-          }}
-        />
-      )}
-      {activeTab === 'library' && <Library />}
-      {activeTab === 'gameNiteTools' && <GameNiteTools initialTool={selectedTool} />}
-      {activeTab === 'admin' && <AdminPanel />}
+      {/* ── Page content — bottom padding on mobile clears the fixed bottom nav ── */}
+      <div className="pb-24 md:pb-0">
+        {activeTab === 'dashboard' && (
+          <Dashboard
+            onNavigate={(tab, params) => {
+              setActiveTab(tab);
+              if (tab === 'gameNiteTools' && params?.tool) {
+                setSelectedTool(params.tool);
+              }
+            }}
+          />
+        )}
+        {activeTab === 'library' && <Library />}
+        {activeTab === 'gameNiteTools' && <GameNiteTools initialTool={selectedTool} />}
+        {activeTab === 'admin' && <AdminPanel />}
+        {activeTab === 'profile' && (
+          <div className="md:hidden">
+            <ProfileDrawer mode="page" isOpen={true} onClose={() => setActiveTab('dashboard')} />
+          </div>
+        )}
+      </div>
+
+      {/* ── Mobile bottom nav (hidden on desktop) ────────────────────────────── */}
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <div className="flex">
+          {bottomNavItems.map(({ tab, icon: Icon, label }) => {
+            const isActive = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`relative flex-1 flex flex-col items-center justify-center pt-2 pb-1.5 gap-0.5 transition-colors ${
+                  isActive ? '' : 'text-slate-400'
+                }`}
+                style={isActive ? { color: bottomNavColor } : undefined}
+              >
+                {isActive && (
+                  <span
+                    className="absolute top-0 inset-x-0 h-0.5"
+                    style={{ backgroundColor: bottomNavColor }}
+                  />
+                )}
+                <Icon className="w-5 h-5" />
+                <span className={`text-xs font-body ${isActive ? 'font-medium' : ''}`}>
+                  {label}
+                </span>
+              </button>
+            );
+          })}
+
+          {/* Profile — full page tab on mobile */}
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`relative flex-1 flex flex-col items-center justify-center pt-2 pb-1.5 gap-0.5 transition-colors ${
+              activeTab === 'profile' ? '' : 'text-slate-400'
+            }`}
+            style={activeTab === 'profile' ? { color: bottomNavColor } : undefined}
+          >
+            {activeTab === 'profile' && (
+              <span className="absolute top-0 inset-x-0 h-0.5" style={{ backgroundColor: bottomNavColor }} />
+            )}
+            <MeepleIcon className="w-5 h-5" />
+            <span className={`text-xs font-body ${activeTab === 'profile' ? 'font-medium' : ''}`}>Profile</span>
+          </button>
+        </div>
+      </nav>
     </div>
   );
 }

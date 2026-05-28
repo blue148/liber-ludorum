@@ -1,0 +1,2 @@
+- [Mobile-First Redesign Initiative](project_mobile_first.md) — Mobile redesign planned Mar 2026; user priorities, pain points, target devices
+- [App Structure Overview](project_app_structure.md) — Component map: App.tsx nav shell, Dashboard, Library, GameNiteTools, key sub-components

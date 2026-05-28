@@ -1,16 +1,29 @@
 import { supabase } from './supabase';
 import { UserLibraryEntry, Game } from './supabase';
+import { getUserOverallVictoryStats } from './sessions';
 
 export interface DashboardStats {
   totalGames: number;
   totalPlays: number;
   favoriteCount: number;
   unplayedCount: number;
+  victoryStats?: {
+    totalSessions: number;
+    totalWins: number;
+    winRate: number;
+    gamesPlayed: number;
+    lastSession?: string;
+  };
 }
 
 export interface PlayedGameStat extends UserLibraryEntry {
   game: Game;
   playCount: number;
+  victoryStats?: {
+    totalSessions: number;
+    totalWins: number;
+    winRate: number;
+  };
 }
 
 export interface PlayActivity {
@@ -34,11 +47,28 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
   const totalPlays = data.reduce((sum, e) => sum + (e.played_dates?.length || 0), 0);
   const unplayedCount = data.filter(e => !e.played_dates || e.played_dates.length === 0).length;
 
+  // Get victory statistics
+  let victoryStats;
+  try {
+    const overallStats = await getUserOverallVictoryStats(userId);
+    victoryStats = {
+      totalSessions: overallStats.total_sessions,
+      totalWins: overallStats.total_wins,
+      winRate: overallStats.win_rate,
+      gamesPlayed: overallStats.games_played,
+      lastSession: overallStats.last_session,
+    };
+  } catch (error) {
+    console.warn('Error fetching victory stats:', error);
+    victoryStats = undefined;
+  }
+
   return {
     totalGames,
     favoriteCount,
     totalPlays,
     unplayedCount,
+    victoryStats,
   };
 }
 

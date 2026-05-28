@@ -2445,6 +2445,35 @@ __metadata:
   languageName: node
   linkType: hard
 
+"libre-ludorum@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "libre-ludorum@workspace:."
+  dependencies:
+    "@eslint/js": "npm:^9.9.1"
+    "@supabase/supabase-js": "npm:^2.57.4"
+    "@types/react": "npm:^18.3.5"
+    "@types/react-dom": "npm:^18.3.0"
+    "@vitejs/plugin-react": "npm:^4.3.1"
+    autoprefixer: "npm:^10.4.18"
+    dotenv: "npm:^16.6.1"
+    eslint: "npm:^9.9.1"
+    eslint-plugin-react-hooks: "npm:^5.1.0-rc.0"
+    eslint-plugin-react-refresh: "npm:^0.4.11"
+    globals: "npm:^15.9.0"
+    html5-qrcode: "npm:^2.3.8"
+    lucide-react: "npm:^0.344.0"
+    postcss: "npm:^8.4.35"
+    react: "npm:^18.3.1"
+    react-dom: "npm:^18.3.1"
+    sonner: "npm:^2.0.7"
+    tailwindcss: "npm:^3.4.1"
+    tsx: "npm:^4.19.2"
+    typescript: "npm:^5.5.3"
+    typescript-eslint: "npm:^8.3.0"
+    vite: "npm:^5.4.2"
+  languageName: unknown
+  linkType: soft
+
 "lilconfig@npm:^3.1.1, lilconfig@npm:^3.1.3":
   version: 3.1.3
   resolution: "lilconfig@npm:3.1.3"
@@ -3509,35 +3538,6 @@ __metadata:
   checksum: 10c0/41a5bdd214df2f6c3ecf8622745e4a366c4adced864bc3c833739791aeeeb1838119af7daed4ba36428114b5c67dcda034a79c882e97e43c03e66a4dd7389942
   languageName: node
   linkType: hard
-
-"vite-react-typescript-starter@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "vite-react-typescript-starter@workspace:."
-  dependencies:
-    "@eslint/js": "npm:^9.9.1"
-    "@supabase/supabase-js": "npm:^2.57.4"
-    "@types/react": "npm:^18.3.5"
-    "@types/react-dom": "npm:^18.3.0"
-    "@vitejs/plugin-react": "npm:^4.3.1"
-    autoprefixer: "npm:^10.4.18"
-    dotenv: "npm:^16.6.1"
-    eslint: "npm:^9.9.1"
-    eslint-plugin-react-hooks: "npm:^5.1.0-rc.0"
-    eslint-plugin-react-refresh: "npm:^0.4.11"
-    globals: "npm:^15.9.0"
-    html5-qrcode: "npm:^2.3.8"
-    lucide-react: "npm:^0.344.0"
-    postcss: "npm:^8.4.35"
-    react: "npm:^18.3.1"
-    react-dom: "npm:^18.3.1"
-    sonner: "npm:^2.0.7"
-    tailwindcss: "npm:^3.4.1"
-    tsx: "npm:^4.19.2"
-    typescript: "npm:^5.5.3"
-    typescript-eslint: "npm:^8.3.0"
-    vite: "npm:^5.4.2"
-  languageName: unknown
-  linkType: soft
 
 "vite@npm:^5.4.2":
   version: 5.4.21

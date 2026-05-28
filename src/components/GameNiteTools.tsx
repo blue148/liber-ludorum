@@ -3,7 +3,7 @@ import GameChooser from './GameChooser';
 import FirstPlayerChooser from './FirstPlayerChooser';
 import TurnTimer from './TurnTimer';
 import GameTimer from './GameTimer';
-import { Sparkles, Dice6, Timer, Clock } from 'lucide-react';
+import { Sparkles, Dice6, Timer, Clock, ChevronRight } from 'lucide-react';
 
 type Tool = 'game-chooser' | 'first-player' | 'turn-timer' | 'game-timer';
 
@@ -11,102 +11,149 @@ interface GameNiteToolsProps {
   initialTool?: Tool;
 }
 
-export default function GameNiteTools({ initialTool = 'game-chooser' }: GameNiteToolsProps) {
-  const [activeTool, setActiveTool] = useState<Tool>(initialTool);
+const tools = [
+  {
+    id: 'game-chooser' as Tool,
+    label: 'Game Chooser', sublabel: 'Spin the wheel to pick a game',
+    Icon: Sparkles, iconColor: 'text-plum-400',
+    mobileSurface: 'bg-plum-50', mobileIcon: 'text-plum-300',
+  },
+  {
+    id: 'first-player' as Tool,
+    label: 'First Player', sublabel: 'Randomly pick who goes first',
+    Icon: Dice6, iconColor: 'text-clay-400',
+    mobileSurface: 'bg-clay-50', mobileIcon: 'text-clay-300',
+  },
+  {
+    id: 'turn-timer' as Tool,
+    label: 'Turn Timer', sublabel: 'Countdown each player\'s turn',
+    Icon: Timer, iconColor: 'text-sky-400',
+    mobileSurface: 'bg-forest-50', mobileIcon: 'text-forest-300',
+  },
+  {
+    id: 'game-timer' as Tool,
+    label: 'Game Timer', sublabel: 'Track a full game session',
+    Icon: Clock, iconColor: 'text-wheat-400',
+    mobileSurface: 'bg-wheat-50', mobileIcon: 'text-wheat-400',
+  },
+];
+
+export default function GameNiteTools({ initialTool }: GameNiteToolsProps) {
+  // Which tool is active (used by desktop tabs and mobile tool view)
+  const [activeTool, setActiveTool] = useState<Tool>(initialTool ?? 'game-chooser');
+  // Mobile-only: 'grid' shows the 4 cards, 'tool' shows the selected tool
+  const [mobileView, setMobileView] = useState<'grid' | 'tool'>(initialTool ? 'tool' : 'grid');
+  // Controls the fade/slide animation between views on mobile
+  const [isVisible, setIsVisible] = useState(true);
+
+  const transitionToTool = (tool: Tool) => {
+    setIsVisible(false);
+    setTimeout(() => {
+      setActiveTool(tool);
+      setMobileView('tool');
+      setIsVisible(true);
+    }, 180);
+  };
+
+
+  const activeDef = tools.find(t => t.id === activeTool)!;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-display font-light text-slate-900 flex items-center gap-3">
-            <Sparkles className="w-8 h-8 text-purple-600" />
-            Game Nite Tools
-          </h1>
-          <p className="text-slate-600 mt-2">
-            Make your game night planning easy and fun!
-          </p>
+    <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
+
+      {/* ── Desktop header ─────────────────────────────────────────────────── */}
+      <div className="hidden md:block mb-8">
+        <h1 className="text-3xl font-display font-light text-slate-900 flex items-center gap-3">
+          <Sparkles className="w-8 h-8 text-purple-600" />
+          Game Nite Tools
+        </h1>
+        <p className="text-slate-600 mt-2">Make your game night planning easy and fun!</p>
+      </div>
+
+      {/* ── Desktop tab bar ─────────────────────────────────────────────────── */}
+      <div className="hidden md:block mb-8 bg-white rounded-lg shadow-sm border border-container">
+        <div className="flex border-b border-container">
+          {tools.map(({ id, label, sublabel, Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTool(id)}
+              className={`flex-1 px-6 py-4 text-center font-medium transition-all ${
+                activeTool === id
+                  ? 'bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 border-b-2 border-purple-600'
+                  : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <Icon className="w-5 h-5" />
+                <span>{label}</span>
+              </div>
+              <p className="text-xs mt-1 opacity-75">{sublabel}</p>
+            </button>
+          ))}
         </div>
+      </div>
 
-        {/* Subnav Tabs */}
-        <div className="mb-8 bg-white rounded-lg shadow-sm border border-container overflow-x-auto">
-          <div className="flex border-b border-container min-w-max sm:min-w-0">
-            <button
-              onClick={() => setActiveTool('game-chooser')}
-              className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 text-center font-medium transition-all ${
-                activeTool === 'game-chooser'
-                  ? 'bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 border-b-2 border-purple-600'
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-1 sm:gap-2">
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="text-sm sm:text-base whitespace-nowrap">Game Chooser</span>
-              </div>
-              <p className="text-xs mt-1 opacity-75 hidden md:block">
-                Spin the wheel to pick a game
-              </p>
-            </button>
-
-            <button
-              onClick={() => setActiveTool('first-player')}
-              className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 text-center font-medium transition-all ${
-                activeTool === 'first-player'
-                  ? 'bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 border-b-2 border-purple-600'
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-1 sm:gap-2">
-                <Dice6 className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="text-sm sm:text-base whitespace-nowrap">First Player</span>
-              </div>
-              <p className="text-xs mt-1 opacity-75 hidden md:block">
-                Randomly pick who goes first
-              </p>
-            </button>
-
-            <button
-              onClick={() => setActiveTool('turn-timer')}
-              className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 text-center font-medium transition-all ${
-                activeTool === 'turn-timer'
-                  ? 'bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 border-b-2 border-purple-600'
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-1 sm:gap-2">
-                <Timer className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="text-sm sm:text-base whitespace-nowrap">Turn Timer</span>
-              </div>
-              <p className="text-xs mt-1 opacity-75 hidden md:block">
-                Countdown each player turn
-              </p>
-            </button>
-
-            <button
-              onClick={() => setActiveTool('game-timer')}
-              className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 text-center font-medium transition-all ${
-                activeTool === 'game-timer'
-                  ? 'bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 border-b-2 border-purple-600'
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-1 sm:gap-2">
-                <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="text-sm sm:text-base whitespace-nowrap">Game Timer</span>
-              </div>
-              <p className="text-xs mt-1 opacity-75 hidden md:block">
-                Track a game session
-              </p>
-            </button>
+      {/* ── Mobile animated nav ─────────────────────────────────────────────── */}
+      <div
+        className="md:hidden"
+        style={{
+          transition: 'opacity 180ms ease, transform 180ms ease',
+          opacity: isVisible ? 1 : 0,
+          transform: isVisible ? 'translateY(0)' : 'translateY(6px)',
+        }}
+      >
+        {mobileView === 'grid' ? (
+          /* Full-width botanical tool rows */
+          <div className="flex flex-col gap-2">
+            {tools.map(({ id, label, sublabel, Icon, mobileSurface, mobileIcon }) => (
+              <button
+                key={id}
+                onClick={() => transitionToTool(id)}
+                className={`flex items-center gap-4 px-4 py-[18px] ${mobileSurface} border border-parchment-300 text-left active:brightness-95 transition`}
+              >
+                <Icon className={`w-[22px] h-[22px] flex-shrink-0 ${mobileIcon}`} strokeWidth={1.5} />
+                <div className="flex-1 min-w-0">
+                  <div className="font-display text-xl font-normal text-ink-600 leading-tight">{label}</div>
+                  <div className="font-body text-[11px] text-ink-200 mt-0.5">{sublabel}</div>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-ink-200 flex-shrink-0" strokeWidth={1.5} />
+              </button>
+            ))}
           </div>
-        </div>
+        ) : (
+          /* Tool heading with quick-switch row */
+          <div className="mb-5">
+            {/* 3 quick-switch buttons for the other tools */}
+            <div className="flex gap-2 mb-5">
+              {tools
+                .filter(t => t.id !== activeTool)
+                .map(({ id, label }) => (
+                  <button
+                    key={id}
+                    onClick={() => transitionToTool(id)}
+                    className="flex-1 py-2 px-2 text-xs font-body text-slate-600 bg-white border thin-rule rule-line hover:bg-slate-50 hover:text-slate-900 active:bg-slate-100 transition"
+                  >
+                    {label}
+                  </button>
+                ))}
+            </div>
+            {/* Active tool heading */}
+            <div className="flex items-center gap-3">
+              <activeDef.Icon className={`w-6 h-6 ${activeDef.iconColor}`} />
+              <h2 className="text-2xl font-display font-light text-slate-900">{activeDef.label}</h2>
+            </div>
+          </div>
+        )}
+      </div>
 
-        {/* Tool Content */}
-        <div>
-          {activeTool === 'game-chooser' && <GameChooser />}
-          {activeTool === 'first-player' && <FirstPlayerChooser />}
-          {activeTool === 'turn-timer' && <TurnTimer />}
-          {activeTool === 'game-timer' && <GameTimer />}
-        </div>
+      {/* ── Tool content ───────────────────────────────────────────────────── */}
+      {/* Single instance — hidden on mobile when the grid is showing */}
+      <div className={mobileView === 'grid' ? 'hidden md:block' : ''}>
+        {activeTool === 'game-chooser' && <GameChooser />}
+        {activeTool === 'first-player' && <FirstPlayerChooser />}
+        {activeTool === 'turn-timer'   && <TurnTimer />}
+        {activeTool === 'game-timer'   && <GameTimer />}
+      </div>
     </div>
   );
 }

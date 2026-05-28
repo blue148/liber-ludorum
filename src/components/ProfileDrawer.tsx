@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 interface ProfileDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  mode?: 'drawer' | 'page';
 }
 
 const PREDEFINED_AVATARS = [
@@ -19,7 +20,7 @@ const PREDEFINED_AVATARS = [
   'https://api.dicebear.com/7.x/avataaars/svg?seed=Bella',
 ];
 
-export default function ProfileDrawer({ isOpen, onClose }: ProfileDrawerProps) {
+export default function ProfileDrawer({ isOpen, onClose, mode = 'drawer' }: ProfileDrawerProps) {
   const { profile, user, refreshProfile, signOut } = useAuth();
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
@@ -164,28 +165,10 @@ export default function ProfileDrawer({ isOpen, onClose }: ProfileDrawerProps) {
     await signOut();
   };
 
-  if (!isOpen) return null;
+  if (mode !== 'page' && !isOpen) return null;
 
-  return (
-    <>
-      <div
-        className="fixed inset-0 bg-black/40 z-40 transition-opacity"
-        onClick={onClose}
-      />
-      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-cream z-50 flex flex-col shadow-2xl">
-
-        <div className="flex items-center justify-between px-6 py-5 border-b thin-rule rule-line flex-shrink-0">
-          <h2 className="text-2xl font-display font-light text-slate-900">Profile</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-slate-100 transition-colors"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5 text-slate-500" strokeWidth={1.5} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
+  const innerContent = (
+    <div className={mode === 'page' ? 'flex-1' : 'flex-1 overflow-y-auto'}>
 
           <div className="px-6 py-6 border-b thin-rule rule-line">
             <div className="flex items-center gap-4">
@@ -424,17 +407,47 @@ export default function ProfileDrawer({ isOpen, onClose }: ProfileDrawerProps) {
               </form>
             )}
           </div>
-        </div>
+    </div>
+  );
 
-        <div className="flex-shrink-0 px-6 py-4 border-t thin-rule rule-line">
-          <button
-            onClick={handleSignOut}
-            className="w-full flex items-center justify-center gap-2.5 py-3 border thin-rule rule-line text-slate-700 font-body text-sm hover:bg-slate-50 hover:text-slate-900 transition-colors group"
-          >
-            <LogOut className="w-4 h-4 flex-shrink-0 group-hover:text-terracotta-600 transition-colors" strokeWidth={1.5} />
-            Sign Out
+  const footer = (
+    <div className="flex-shrink-0 px-6 py-4 border-t thin-rule rule-line">
+      <button
+        onClick={handleSignOut}
+        className="w-full flex items-center justify-center gap-2.5 py-3 border border-parchment-300 text-ink-400 font-body text-sm hover:bg-parchment-100 hover:text-clay-500 transition-colors group"
+      >
+        <LogOut className="w-4 h-4 flex-shrink-0 group-hover:text-clay-400 transition-colors" strokeWidth={1.5} />
+        Sign Out
+      </button>
+    </div>
+  );
+
+  if (mode === 'page') {
+    return (
+      <div className="min-h-screen bg-cream flex flex-col pb-24">
+        <div className="flex items-center px-6 py-5 border-b thin-rule rule-line flex-shrink-0 sticky top-0 bg-cream z-10">
+          <h2 className="text-2xl font-display font-light text-ink-600">Profile</h2>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {innerContent}
+        </div>
+        {footer}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/40 z-40 transition-opacity" onClick={onClose} />
+      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-cream z-50 flex flex-col shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-5 border-b thin-rule rule-line flex-shrink-0">
+          <h2 className="text-2xl font-display font-light text-slate-900">Profile</h2>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 transition-colors" aria-label="Close">
+            <X className="w-5 h-5 text-slate-500" strokeWidth={1.5} />
           </button>
         </div>
+        {innerContent}
+        {footer}
       </div>
     </>
   );
