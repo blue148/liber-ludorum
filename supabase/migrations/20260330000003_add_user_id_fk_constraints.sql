@@ -13,16 +13,30 @@ DELETE FROM user_library
 DELETE FROM user_wishlist
   WHERE user_id NOT IN (SELECT id FROM auth.users);
 
--- Add FK constraint to user_library
-ALTER TABLE user_library
-  ADD CONSTRAINT user_library_user_id_fkey
-  FOREIGN KEY (user_id)
-  REFERENCES auth.users(id)
-  ON DELETE CASCADE;
+-- Add FK constraint to user_library (guarded so the migration is idempotent)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'user_library_user_id_fkey'
+  ) THEN
+    ALTER TABLE user_library
+      ADD CONSTRAINT user_library_user_id_fkey
+      FOREIGN KEY (user_id)
+      REFERENCES auth.users(id)
+      ON DELETE CASCADE;
+  END IF;
+END $$;
 
--- Add FK constraint to user_wishlist
-ALTER TABLE user_wishlist
-  ADD CONSTRAINT user_wishlist_user_id_fkey
-  FOREIGN KEY (user_id)
-  REFERENCES auth.users(id)
-  ON DELETE CASCADE;
+-- Add FK constraint to user_wishlist (guarded so the migration is idempotent)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'user_wishlist_user_id_fkey'
+  ) THEN
+    ALTER TABLE user_wishlist
+      ADD CONSTRAINT user_wishlist_user_id_fkey
+      FOREIGN KEY (user_id)
+      REFERENCES auth.users(id)
+      ON DELETE CASCADE;
+  END IF;
+END $$;

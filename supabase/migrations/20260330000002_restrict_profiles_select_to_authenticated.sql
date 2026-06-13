@@ -5,6 +5,7 @@
 -- If a public-facing profile feature is needed later, add a scoped policy at that time.
 
 DROP POLICY IF EXISTS "Profiles are viewable by everyone" ON profiles;
+DROP POLICY IF EXISTS "Profiles are viewable by authenticated users" ON profiles;
 
 CREATE POLICY "Profiles are viewable by authenticated users"
   ON profiles FOR SELECT
