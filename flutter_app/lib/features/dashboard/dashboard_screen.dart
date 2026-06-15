@@ -89,19 +89,19 @@ class _QuickActions extends StatelessWidget {
             _ActionCard(
               icon: Icons.shuffle,
               label: 'Game Picker',
-              onTap: () => context.go('/game-nite'),
+              onTap: () => context.go('/game-nite/chooser'),
             ),
             const SizedBox(width: 8),
             _ActionCard(
               icon: Icons.people_outline,
               label: 'First Player',
-              onTap: () => context.go('/game-nite'),
+              onTap: () => context.go('/game-nite/first-player'),
             ),
             const SizedBox(width: 8),
             _ActionCard(
               icon: Icons.timer_outlined,
               label: 'Turn Timer',
-              onTap: () => context.go('/game-nite'),
+              onTap: () => context.go('/game-nite/turn-timer'),
             ),
           ],
         ),

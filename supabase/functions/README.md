@@ -14,6 +14,20 @@ Securely handles barcode lookups with automatic fallback:
 - **3rd Fallback**: UPCItemDB API
 - Keeps API tokens server-side only
 
+### 3. Delete Account Function
+Permanently deletes the calling user's account. A client cannot delete its own
+auth user (that requires the service-role key), so this function:
+- Authenticates the caller via their JWT and derives the user id from it (never
+  from the request body — a user can only delete themselves)
+- Deletes the user's avatar files from the `avatars` storage bucket (not cascaded
+  by foreign keys)
+- Calls `auth.admin.deleteUser()`, which cascades to remove all relational data
+  (`profiles`, `user_library`, `user_wishlist`, `game_sessions`,
+  `session_victories`, `user_friends`, `shared_library_access`)
+
+Required for App Store / Play Store compliance (apps that support account
+creation must offer in-app account deletion).
+
 ### Setup
 
 #### 1. Install Supabase CLI (if not already installed)
@@ -40,16 +54,24 @@ supabase secrets set BARCODELOOKUP_API_KEY=your-barcodelookup-api-key-here
 # (Optional) UPCItemDB API token for higher limits
 supabase secrets set UPCITEMDB_USER_KEY=your-upcitemdb-key
 supabase secrets set UPCITEMDB_KEY_TYPE=3scale
+
+# Service-role key for the delete-account function (Dashboard > Settings > API).
+# This is privileged — keep it server-side only, never in the app.
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
 This stores your tokens securely on Supabase's servers. They will NOT be visible in your code or to end users.
 
+> **Note:** `SUPABASE_URL` and `SUPABASE_ANON_KEY` are injected automatically by
+> the Supabase runtime and do not need to be set as secrets.
+
 #### 4. Deploy the functions
 
 ```bash
-# Deploy both functions
+# Deploy individual functions
 supabase functions deploy bgg-lookup
 supabase functions deploy barcode-lookup
+supabase functions deploy delete-account
 
 # Or deploy all functions at once
 supabase functions deploy

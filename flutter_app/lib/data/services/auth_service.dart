@@ -25,6 +25,17 @@ abstract class AuthService {
     await supabase.auth.signOut();
   }
 
+  /// Permanently deletes the current user's account and all associated data
+  /// via the `delete-account` edge function, then clears the local session
+  /// (which triggers the router redirect back to the auth screen).
+  static Future<void> deleteAccount() async {
+    final response = await supabase.functions.invoke('delete-account');
+    if (response.status != 200) {
+      throw Exception('Failed to delete account. Please try again.');
+    }
+    await supabase.auth.signOut();
+  }
+
   static Future<AppProfile?> getProfile(String userId) async {
     final data = await supabase
         .from('profiles')

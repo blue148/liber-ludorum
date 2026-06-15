@@ -60,6 +60,67 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     return result;
   }
 
+  void _showAddGameSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.parchment50,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.ink100,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text('Add a game',
+                  style: GoogleFonts.cormorantGaramond(
+                      fontSize: 22, color: AppColors.ink500)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.qr_code_scanner,
+                  color: AppColors.clay400),
+              title: Text('Scan barcode',
+                  style: GoogleFonts.jost(
+                      fontWeight: FontWeight.w600, color: AppColors.ink500)),
+              subtitle: Text('Use your camera to scan a game',
+                  style:
+                      GoogleFonts.jost(fontSize: 12, color: AppColors.ink300)),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                context.push('/library/scanner');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.search, color: AppColors.clay400),
+              title: Text('Search by title',
+                  style: GoogleFonts.jost(
+                      fontWeight: FontWeight.w600, color: AppColors.ink500)),
+              subtitle: Text('Find a game on BoardGameGeek',
+                  style:
+                      GoogleFonts.jost(fontSize: 12, color: AppColors.ink300)),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                context.push('/library/manual-add');
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final onCatalogue = _tabs.index == 0;
@@ -112,9 +173,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       ),
       floatingActionButton: onCatalogue
           ? FloatingActionButton(
-              onPressed: () => context.push('/library/scanner'),
+              onPressed: _showAddGameSheet,
               backgroundColor: AppColors.clay400,
-              child: const Icon(Icons.qr_code_scanner, color: Colors.white),
+              child: const Icon(Icons.add, color: Colors.white),
             )
           : null,
       body: TabBarView(
@@ -158,7 +219,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   void _confirmDelete(LibraryEntry entry) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text('Remove game?',
             style: GoogleFonts.cormorantGaramond(fontSize: 22)),
         content: Text(
@@ -167,12 +228,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               ref.read(libraryProvider.notifier).removeGame(entry.id);
             },
             child:
@@ -269,7 +330,7 @@ class _CatalogueTab extends ConsumerWidget {
                       ),
                       if (entries.isEmpty) ...[
                         const SizedBox(height: 8),
-                        Text('Scan a barcode to add your first game',
+                        Text('Tap + to scan or search for your first game',
                             style: GoogleFonts.jost(
                                 fontSize: 13, color: AppColors.ink200)),
                       ],
@@ -494,7 +555,7 @@ class _WishlistTabState extends ConsumerState<_WishlistTab> {
   void _confirmMoveToLibrary(WishlistEntry entry) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text('Move to library?',
             style: GoogleFonts.cormorantGaramond(fontSize: 22)),
         content: Text(
@@ -503,12 +564,12 @@ class _WishlistTabState extends ConsumerState<_WishlistTab> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               ref
                   .read(wishlistProvider.notifier)
                   .moveToLibrary(entry.id, entry.gameId);
@@ -524,7 +585,7 @@ class _WishlistTabState extends ConsumerState<_WishlistTab> {
   void _confirmDelete(WishlistEntry entry) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text('Remove from wishlist?',
             style: GoogleFonts.cormorantGaramond(fontSize: 22)),
         content: Text(
@@ -533,12 +594,12 @@ class _WishlistTabState extends ConsumerState<_WishlistTab> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               ref.read(wishlistProvider.notifier).removeEntry(entry.id);
             },
             child: Text('Remove',
@@ -843,17 +904,17 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
     final name = friendship.friend?.username ?? 'this user';
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text('Remove friend?',
             style: GoogleFonts.cormorantGaramond(fontSize: 22)),
         content: Text('Remove $name as a friend?',
             style: GoogleFonts.jost(fontSize: 14, color: AppColors.ink400)),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => Navigator.pop(dialogContext, false),
               child: const Text('Cancel')),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             child: Text('Remove',
                 style: GoogleFonts.jost(color: AppColors.clay500)),
           ),

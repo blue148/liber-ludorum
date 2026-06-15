@@ -116,6 +116,14 @@ class ProfileScreen extends ConsumerWidget {
               color: AppColors.clay500,
               onTap: () => _confirmSignOut(context, ref),
             ),
+
+            // Delete account
+            _MenuItem(
+              icon: Icons.delete_outline,
+              label: 'Delete Account',
+              color: AppColors.clay500,
+              onTap: () => _confirmDeleteAccount(context, ref),
+            ),
           ],
         ),
       ),
@@ -125,25 +133,148 @@ class ProfileScreen extends ConsumerWidget {
   void _confirmSignOut(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text('Sign out?',
             style: GoogleFonts.cormorantGaramond(fontSize: 22)),
         content: Text('You will need to sign in again to access your library.',
             style: GoogleFonts.jost(fontSize: 14, color: AppColors.ink400)),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               await AuthService.signOut();
             },
             child: Text('Sign Out',
                 style: GoogleFonts.jost(color: AppColors.clay500)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _confirmDeleteAccount(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) => const _DeleteAccountSheet(),
+    );
+  }
+}
+
+/// Confirmation drawer shown before permanently deleting an account.
+/// Holds its own loading/error state so the parent screen stays stateless.
+class _DeleteAccountSheet extends StatefulWidget {
+  const _DeleteAccountSheet();
+
+  @override
+  State<_DeleteAccountSheet> createState() => _DeleteAccountSheetState();
+}
+
+class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
+  bool _deleting = false;
+  String? _error;
+
+  Future<void> _delete() async {
+    setState(() {
+      _deleting = true;
+      _error = null;
+    });
+
+    try {
+      await AuthService.deleteAccount();
+      // Session is now cleared; the router redirect handles navigation to /auth.
+      // Pop the sheet if it is somehow still mounted.
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _deleting = false;
+          _error = e.toString().replaceFirst('Exception: ', '');
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.warning_amber_rounded,
+                size: 40, color: AppColors.clay500),
+            const SizedBox(height: 12),
+            Text(
+              'Delete account?',
+              style: GoogleFonts.cormorantGaramond(
+                  fontSize: 24, color: AppColors.ink600),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'This permanently deletes your account and cannot be undone. '
+              'Your profile, library, wishlist, game sessions, and friends '
+              'will all be removed.',
+              style: GoogleFonts.jost(fontSize: 14, color: AppColors.ink400),
+              textAlign: TextAlign.center,
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.clay50,
+                  border: Border.all(color: AppColors.clay200),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  _error!,
+                  style: GoogleFonts.jost(fontSize: 13, color: AppColors.clay600),
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _deleting ? null : () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _deleting ? null : _delete,
+                    style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.clay500),
+                    child: _deleting
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text('Delete Account'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

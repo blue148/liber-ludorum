@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -49,6 +50,8 @@ class _AuthScreenState extends State<AuthScreen> {
           password: _passwordCtrl.text,
         );
       }
+      // Commit the autofill context so iOS/1Password offers to save the login.
+      TextInput.finishAutofillContext();
       // Router redirect handles navigation after auth state change
     } catch (e) {
       setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
@@ -76,6 +79,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 padding: const EdgeInsets.all(40),
                 child: Form(
                   key: _formKey,
+                  child: AutofillGroup(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -209,6 +213,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                       ),
                     ],
+                  ),
                   ),
                 ),
               ),

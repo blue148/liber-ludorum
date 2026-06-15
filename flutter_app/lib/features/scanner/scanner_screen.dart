@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
@@ -61,9 +62,9 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                 'min_players': bggData['min_players'],
                 'max_players': bggData['max_players'],
                 'playtime_minutes': bggData['playtime_minutes'],
-                'year': bggData['year'],
-                'game_category': bggData['categories'] ?? [],
-                'game_mechanic': bggData['mechanics'] ?? [],
+                'year': (bggData['year'] as int?)?.toString(),
+                'game_category': bggData['game_category'] ?? [],
+                'game_mechanic': bggData['game_mechanic'] ?? [],
               });
               // 4. Submit barcode mapping back to GameUPC (crowdsourced)
               GamesService.submitBarcodeMapping(barcode, bggId);
@@ -154,8 +155,13 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                 Expanded(
                   child: FilledButton(
                     onPressed: () {
-                      Navigator.pop(context);
-                      // TODO: navigate to manual entry
+                      Navigator.pop(context); // close the bottom sheet
+                      // Leave the scanner and open manual entry, carrying the
+                      // unmatched barcode so the saved game keeps it.
+                      context.pushReplacement(
+                        '/library/manual-add',
+                        extra: barcode,
+                      );
                     },
                     style: FilledButton.styleFrom(backgroundColor: AppColors.forest500),
                     child: const Text('Add Manually'),
@@ -198,7 +204,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
               width: 240,
               height: 240,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.white.withOpacity(0.7), width: 2),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.7), width: 2),
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
@@ -207,7 +213,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
           // Status / processing overlay
           if (_processing)
             Container(
-              color: Colors.black.withOpacity(0.6),
+              color: Colors.black.withValues(alpha: 0.6),
               child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -233,7 +239,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                 'Point camera at a game barcode',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.jost(
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 13,
                 ),
               ),

@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import '../features/auth/auth_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
+import '../features/game_nite/dice_roller_page.dart';
 import '../features/game_nite/game_nite_screen.dart';
 import '../features/library/library_screen.dart';
+import '../features/library/manual_game_entry_page.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/scanner/scanner_screen.dart';
 import '../features/shell/app_shell.dart';
@@ -49,7 +51,32 @@ final routerProvider = Provider<GoRouter>((ref) {
             GoRoute(path: '/dashboard', builder: (_, __) => const DashboardScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(path: '/game-nite', builder: (_, __) => const GameNiteScreen()),
+            GoRoute(
+              path: '/game-nite',
+              builder: (_, __) => const GameNiteScreen(),
+              routes: [
+                GoRoute(
+                  path: 'chooser',
+                  builder: (_, __) => const GameChooserPage(),
+                ),
+                GoRoute(
+                  path: 'first-player',
+                  builder: (_, __) => const FirstPlayerPage(),
+                ),
+                GoRoute(
+                  path: 'turn-timer',
+                  builder: (_, __) => const TurnTimerPage(),
+                ),
+                GoRoute(
+                  path: 'game-timer',
+                  builder: (_, __) => const GameTimerPage(),
+                ),
+                GoRoute(
+                  path: 'dice-roller',
+                  builder: (_, __) => const DiceRollerPage(),
+                ),
+              ],
+            ),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
@@ -61,6 +88,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                   pageBuilder: (_, __) => const MaterialPage(
                     fullscreenDialog: true,
                     child: ScannerScreen(),
+                  ),
+                ),
+                GoRoute(
+                  path: 'manual-add',
+                  pageBuilder: (_, state) => MaterialPage(
+                    fullscreenDialog: true,
+                    child: ManualGameEntryPage(barcode: state.extra as String?),
                   ),
                 ),
               ],

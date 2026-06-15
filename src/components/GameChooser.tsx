@@ -11,6 +11,46 @@ interface ExtendedGameEntry extends UserLibraryEntryWithStats {
   source: 'own' | 'shared';
 }
 
+// Curated top-level mechanics. `keywords` are lowercase substrings matched
+// against the raw BGG mechanic strings stored on each game (e.g.
+// "Area Majority / Influence" → "area-control").
+interface MechanicOption {
+  value: string;
+  label: string;
+  keywords: string[];
+}
+
+const MECHANIC_OPTIONS: MechanicOption[] = [
+  { value: 'worker-placement', label: 'Worker Placement', keywords: ['worker placement'] },
+  { value: 'engine-building', label: 'Engine Building', keywords: ['engine building'] },
+  { value: 'auction-bidding', label: 'Auction / Bidding', keywords: ['auction', 'bidding'] },
+  { value: 'trading-negotiation', label: 'Trading / Negotiation', keywords: ['trading', 'negotiation'] },
+  { value: 'deck-building', label: 'Deck Building', keywords: ['deck building', 'deck construction', 'deck, bag'] },
+  { value: 'hand-management', label: 'Hand Management', keywords: ['hand management'] },
+  { value: 'drafting', label: 'Drafting', keywords: ['drafting'] },
+  { value: 'trick-taking', label: 'Trick-Taking', keywords: ['trick-taking', 'trick taking'] },
+  { value: 'set-collection', label: 'Set Collection', keywords: ['set collection'] },
+  { value: 'area-control', label: 'Area Control / Majority', keywords: ['area majority', 'area control', 'area-impulse', 'influence'] },
+  { value: 'tile-placement', label: 'Tile Placement', keywords: ['tile placement', 'tile-laying', 'tile laying'] },
+  { value: 'route-building', label: 'Route / Network Building', keywords: ['route', 'network'] },
+  { value: 'dice-rolling', label: 'Dice Rolling / Placement', keywords: ['dice rolling', 'dice placement'] },
+  { value: 'push-your-luck', label: 'Push Your Luck', keywords: ['push your luck', 'push-your-luck', 'press your luck'] },
+  { value: 'action-points', label: 'Action Point Allowance', keywords: ['action point'] },
+  { value: 'roll-and-write', label: 'Roll-and-Write', keywords: ['roll and write', 'roll-and-write', 'flip and write', 'flip-and-write'] },
+  { value: 'cooperative', label: 'Cooperative', keywords: ['cooperative', 'co-operative'] },
+  { value: 'hidden-role', label: 'Hidden Role / Deduction', keywords: ['hidden role', 'deduction', 'traitor'] },
+];
+
+// True when `game` carries a raw mechanic matching the curated option `value`.
+function gameMatchesMechanic(game: Game, value: string): boolean {
+  const mech = MECHANIC_OPTIONS.find(m => m.value === value);
+  if (!mech) return false;
+  return (game.game_mechanic ?? []).some(raw => {
+    const lower = raw.toLowerCase();
+    return mech.keywords.some(k => lower.includes(k));
+  });
+}
+
 export default function GameChooser() {
   const { user } = useAuth();
   const [library, setLibrary] = useState<ExtendedGameEntry[]>([]);
@@ -154,15 +194,6 @@ export default function GameChooser() {
     }
   }
 
-  // Get all unique game mechanics from library
-  const allMechanics = useMemo(() => {
-    const mechanics = new Set<string>();
-    library.forEach(entry => {
-      entry.game?.game_mechanic?.forEach(mechanic => mechanics.add(mechanic));
-    });
-    return Array.from(mechanics).sort();
-  }, [library]);
-
   // Filter games based on criteria
   const filteredGames = useMemo(() => {
     return library.filter(entry => {
@@ -185,9 +216,9 @@ export default function GameChooser() {
         }
       }
 
-      // Game mechanic filter
+      // Game mechanic filter (curated, keyword-matched against raw BGG values)
       if (selectedMechanic) {
-        if (!game.game_mechanic || !game.game_mechanic.includes(selectedMechanic)) {
+        if (!gameMatchesMechanic(game, selectedMechanic)) {
           return false;
         }
       }
@@ -543,18 +574,18 @@ export default function GameChooser() {
                 onClick={() => setShowMechanicMenu(!showMechanicMenu)}
                 className="flex items-center justify-between gap-2 w-full bg-cream border border-parchment-300 px-4 py-2 text-xs font-body text-ink-400 hover:bg-parchment-100 transition"
               >
-                <span>{selectedMechanic || 'Any'}</span>
+                <span>{MECHANIC_OPTIONS.find(m => m.value === selectedMechanic)?.label || 'Any'}</span>
                 <ChevronDown className="w-3.5 h-3.5 text-ink-200 flex-shrink-0" strokeWidth={1.5} />
               </button>
               {showMechanicMenu && (
                 <>
                   <div className="fixed inset-0 z-[100]" onClick={() => setShowMechanicMenu(false)} />
                   <div className="absolute left-0 top-full mt-1 w-full bg-cream border border-parchment-300 shadow-lg py-1 z-[101] max-h-60 overflow-y-auto">
-                    {(['', ...allMechanics] as string[]).map((m) => (
-                      <button key={m || '__any'} type="button" onClick={() => { setSelectedMechanic(m); setShowMechanicMenu(false); }}
+                    {[{ value: '', label: 'Any' }, ...MECHANIC_OPTIONS].map((m) => (
+                      <button key={m.value || '__any'} type="button" onClick={() => { setSelectedMechanic(m.value); setShowMechanicMenu(false); }}
                         className="w-full px-4 py-2 text-left text-xs font-body text-ink-400 hover:bg-parchment-100 flex items-center gap-2">
-                        <Check className={`w-3.5 h-3.5 flex-shrink-0 ${selectedMechanic === m ? 'opacity-100' : 'opacity-0'}`} strokeWidth={2} />
-                        <span>{m || 'Any'}</span>
+                        <Check className={`w-3.5 h-3.5 flex-shrink-0 ${selectedMechanic === m.value ? 'opacity-100' : 'opacity-0'}`} strokeWidth={2} />
+                        <span>{m.label}</span>
                       </button>
                     ))}
                   </div>
