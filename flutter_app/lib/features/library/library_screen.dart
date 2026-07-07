@@ -13,9 +13,14 @@ import '../../data/models/library_entry.dart';
 import '../../data/models/profile.dart';
 import '../../data/models/wishlist_entry.dart';
 import '../../data/services/friends_service.dart';
+import '../../data/models/library_filter.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/wishlist_provider.dart';
 import 'widgets/game_card.dart';
+import 'widgets/library_filter_sheet.dart';
+import 'widgets/log_play_sheet.dart';
+import 'widgets/quick_filter_chips.dart';
+import 'widgets/sort_bottom_sheet.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
@@ -27,10 +32,7 @@ class LibraryScreen extends ConsumerStatefulWidget {
 class _LibraryScreenState extends ConsumerState<LibraryScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabs;
-  final _searchCtrl = TextEditingController();
   GameCardLayout _layout = GameCardLayout.list;
-  String _searchQuery = '';
-  bool _favoritesOnly = false;
 
   @override
   void initState() {
@@ -42,22 +44,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   @override
   void dispose() {
     _tabs.dispose();
-    _searchCtrl.dispose();
     super.dispose();
-  }
-
-  List<LibraryEntry> _filtered(List<LibraryEntry> entries) {
-    var result = entries;
-    if (_searchQuery.isNotEmpty) {
-      final q = _searchQuery.toLowerCase();
-      result = result
-          .where((e) =>
-              e.game.name.toLowerCase().contains(q) ||
-              (e.game.publisher?.toLowerCase().contains(q) ?? false))
-          .toList();
-    }
-    if (_favoritesOnly) result = result.where((e) => e.isFavorite).toList();
-    return result;
   }
 
   void _showAddGameSheet() {
@@ -88,8 +75,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                       fontSize: 22, color: AppColors.ink500)),
             ),
             ListTile(
-              leading: const Icon(Icons.qr_code_scanner,
-                  color: AppColors.clay400),
+              leading:
+                  const Icon(Icons.qr_code_scanner, color: AppColors.clay400),
               title: Text('Scan barcode',
                   style: GoogleFonts.jost(
                       fontWeight: FontWeight.w600, color: AppColors.ink500)),
@@ -142,16 +129,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                           ? GameCardLayout.list
                           : GameCardLayout.grid),
                 ),
-                IconButton(
-                  icon: Icon(
-                    _favoritesOnly ? Icons.star : Icons.star_border,
-                    color: _favoritesOnly
-                        ? AppColors.wheat400
-                        : AppColors.ink300,
-                  ),
-                  onPressed: () =>
-                      setState(() => _favoritesOnly = !_favoritesOnly),
-                ),
               ]
             : null,
         bottom: TabBar(
@@ -182,19 +159,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         controller: _tabs,
         children: [
           _CatalogueTab(
-            searchCtrl: _searchCtrl,
-            searchQuery: _searchQuery,
             layout: _layout,
-            favoritesOnly: _favoritesOnly,
-            onSearchChanged: (v) => setState(() => _searchQuery = v),
-            onSearchCleared: () {
-              _searchCtrl.clear();
-              setState(() => _searchQuery = '');
-            },
-            filtered: _filtered,
             buildCard: _buildCard,
             onRetry: () => ref.invalidate(libraryProvider),
-            libraryAsync: ref.watch(libraryProvider),
           ),
           const _WishlistTab(),
           const _FriendsTab(),
@@ -207,6 +174,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         key: ValueKey(entry.id),
         entry: entry,
         layout: _layout,
+        onTap: () => context.push('/game/${entry.id}', extra: entry),
         onFavorite: () => ref
             .read(libraryProvider.notifier)
             .toggleFavorite(entry.id, !entry.isFavorite),
@@ -214,6 +182,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         onToggleForSale: () => ref
             .read(libraryProvider.notifier)
             .toggleForSale(entry.id, !entry.forSale),
+        onLogPlay: () => showLogPlaySheet(context, entry),
       );
 
   void _confirmDelete(LibraryEntry entry) {
@@ -236,8 +205,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
               Navigator.pop(dialogContext);
               ref.read(libraryProvider.notifier).removeGame(entry.id);
             },
-            child:
-                Text('Remove', style: GoogleFonts.jost(color: AppColors.clay500)),
+            child: Text('Remove',
+                style: GoogleFonts.jost(color: AppColors.clay500)),
           ),
         ],
       ),
@@ -247,40 +216,50 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
 // ── My Library tab ─────────────────────────────────────────────────────────────
 
-class _CatalogueTab extends ConsumerWidget {
-  final TextEditingController searchCtrl;
-  final String searchQuery;
+class _CatalogueTab extends ConsumerStatefulWidget {
   final GameCardLayout layout;
-  final bool favoritesOnly;
-  final ValueChanged<String> onSearchChanged;
-  final VoidCallback onSearchCleared;
-  final List<LibraryEntry> Function(List<LibraryEntry>) filtered;
   final Widget Function(LibraryEntry) buildCard;
   final VoidCallback onRetry;
-  final AsyncValue<List<LibraryEntry>> libraryAsync;
 
   const _CatalogueTab({
-    required this.searchCtrl,
-    required this.searchQuery,
     required this.layout,
-    required this.favoritesOnly,
-    required this.onSearchChanged,
-    required this.onSearchCleared,
-    required this.filtered,
     required this.buildCard,
     required this.onRetry,
-    required this.libraryAsync,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_CatalogueTab> createState() => _CatalogueTabState();
+}
+
+class _CatalogueTabState extends ConsumerState<_CatalogueTab> {
+  final _searchCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final layout = widget.layout;
+    final buildCard = widget.buildCard;
+    final onRetry = widget.onRetry;
+
+    final searchQuery = ref.watch(librarySearchProvider);
+    final libraryAsync = ref.watch(filteredLibraryProvider);
+    final rawAsync = ref.watch(libraryProvider);
+    final activeCount =
+        ref.watch(libraryFilterProvider.select((f) => f.activeCount));
+    final sort = ref.watch(libraryFilterProvider.select((f) => f.sort));
+
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: TextField(
-            controller: searchCtrl,
-            onChanged: onSearchChanged,
+            controller: _searchCtrl,
+            onChanged: (v) => ref.read(librarySearchProvider.notifier).set(v),
             style: GoogleFonts.jost(fontSize: 14, color: AppColors.ink500),
             decoration: InputDecoration(
               hintText: 'Search games…',
@@ -289,12 +268,19 @@ class _CatalogueTab extends ConsumerWidget {
               suffixIcon: searchQuery.isNotEmpty
                   ? IconButton(
                       icon: const Icon(Icons.close, size: 18),
-                      onPressed: onSearchCleared,
+                      onPressed: () {
+                        _searchCtrl.clear();
+                        ref.read(librarySearchProvider.notifier).set('');
+                      },
                     )
                   : null,
             ),
           ),
         ),
+        _ControlRow(activeCount: activeCount, sort: sort),
+        const SizedBox(height: 8),
+        const QuickFilterChips(),
+        const SizedBox(height: 8),
         Expanded(
           child: libraryAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -312,8 +298,8 @@ class _CatalogueTab extends ConsumerWidget {
                 ],
               ),
             ),
-            data: (entries) {
-              final items = filtered(entries);
+            data: (items) {
+              final libraryEmpty = (rawAsync.asData?.value ?? const []).isEmpty;
 
               if (items.isEmpty) {
                 return Center(
@@ -324,13 +310,18 @@ class _CatalogueTab extends ConsumerWidget {
                           size: 48, color: AppColors.ink100),
                       const SizedBox(height: 16),
                       Text(
-                        entries.isEmpty ? 'Your library is empty' : 'No results',
+                        libraryEmpty ? 'Your library is empty' : 'No results',
                         style: GoogleFonts.cormorantGaramond(
                             fontSize: 22, color: AppColors.ink300),
                       ),
-                      if (entries.isEmpty) ...[
+                      if (libraryEmpty) ...[
                         const SizedBox(height: 8),
                         Text('Tap + to scan or search for your first game',
+                            style: GoogleFonts.jost(
+                                fontSize: 13, color: AppColors.ink200)),
+                      ] else ...[
+                        const SizedBox(height: 8),
+                        Text('Try adjusting your search or filters',
                             style: GoogleFonts.jost(
                                 fontSize: 13, color: AppColors.ink200)),
                       ],
@@ -341,8 +332,7 @@ class _CatalogueTab extends ConsumerWidget {
 
               if (layout == GameCardLayout.list) {
                 return RefreshIndicator(
-                  onRefresh: () =>
-                      ref.read(libraryProvider.notifier).refresh(),
+                  onRefresh: () => ref.read(libraryProvider.notifier).refresh(),
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
                     itemCount: items.length,
@@ -356,8 +346,7 @@ class _CatalogueTab extends ConsumerWidget {
                 onRefresh: () => ref.read(libraryProvider.notifier).refresh(),
                 child: GridView.builder(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
                     crossAxisSpacing: 8,
                     mainAxisSpacing: 8,
@@ -375,7 +364,153 @@ class _CatalogueTab extends ConsumerWidget {
   }
 }
 
+// ── Catalogue control row (Sort + Filter) ──────────────────────────────────────
+
+class _ControlRow extends ConsumerWidget {
+  final int activeCount;
+  final LibrarySort sort;
+
+  const _ControlRow({required this.activeCount, required this.sort});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: _ControlButton(
+              icon: Icons.swap_vert,
+              label: sort.label,
+              onTap: () async {
+                final selected = await showSortBottomSheet<LibrarySort>(
+                  context: context,
+                  current: sort,
+                  options: [
+                    for (final s in LibrarySort.values) SortOption(s, s.label),
+                  ],
+                );
+                if (selected != null) {
+                  ref
+                      .read(libraryFilterProvider.notifier)
+                      .update((f) => f.copyWith(sort: selected));
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _ControlButton(
+              icon: Icons.tune,
+              label: 'Filter',
+              badge: activeCount > 0 ? '$activeCount' : null,
+              highlighted: activeCount > 0,
+              onTap: () => showLibraryFilterSheet(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ControlButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String? badge;
+  final bool highlighted;
+  final VoidCallback onTap;
+
+  const _ControlButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.badge,
+    this.highlighted = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor =
+        highlighted ? AppColors.clay400 : AppColors.parchment200;
+    final fgColor = highlighted ? AppColors.clay400 : AppColors.ink400;
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Container(
+          height: 40,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            border: Border.all(color: borderColor),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 18, color: fgColor),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.jost(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: fgColor),
+                ),
+              ),
+              if (badge != null) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: AppColors.clay400,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(badge!,
+                      style: GoogleFonts.jost(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white)),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ── Wishlist tab ───────────────────────────────────────────────────────────────
+
+enum WishlistSort {
+  priority,
+  nameAsc,
+  nameDesc,
+  dateAddedDesc,
+  dateAddedAsc;
+
+  String get label {
+    switch (this) {
+      case WishlistSort.priority:
+        return 'Priority';
+      case WishlistSort.nameAsc:
+        return 'Name (A–Z)';
+      case WishlistSort.nameDesc:
+        return 'Name (Z–A)';
+      case WishlistSort.dateAddedDesc:
+        return 'Recently Added';
+      case WishlistSort.dateAddedAsc:
+        return 'Oldest First';
+    }
+  }
+}
 
 class _WishlistTab extends ConsumerStatefulWidget {
   const _WishlistTab();
@@ -388,6 +523,9 @@ class _WishlistTabState extends ConsumerState<_WishlistTab> {
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
   String _priorityFilter = 'all'; // 'all' | 'high' | 'medium' | 'low'
+  WishlistSort _sort = WishlistSort.priority;
+
+  static const _priorityRank = {'high': 0, 'medium': 1, 'low': 2};
 
   @override
   void dispose() {
@@ -409,7 +547,35 @@ class _WishlistTabState extends ConsumerState<_WishlistTab> {
     if (_priorityFilter != 'all') {
       result = result.where((e) => e.priority == _priorityFilter).toList();
     }
+    result = [...result]..sort(_compare);
     return result;
+  }
+
+  int _compare(WishlistEntry a, WishlistEntry b) {
+    switch (_sort) {
+      case WishlistSort.priority:
+        return (_priorityRank[a.priority] ?? 3)
+            .compareTo(_priorityRank[b.priority] ?? 3);
+      case WishlistSort.nameAsc:
+        return a.game.name.toLowerCase().compareTo(b.game.name.toLowerCase());
+      case WishlistSort.nameDesc:
+        return b.game.name.toLowerCase().compareTo(a.game.name.toLowerCase());
+      case WishlistSort.dateAddedDesc:
+        return b.addedDate.compareTo(a.addedDate);
+      case WishlistSort.dateAddedAsc:
+        return a.addedDate.compareTo(b.addedDate);
+    }
+  }
+
+  Future<void> _openSortSheet() async {
+    final selected = await showSortBottomSheet<WishlistSort>(
+      context: context,
+      current: _sort,
+      options: [
+        for (final s in WishlistSort.values) SortOption(s, s.label),
+      ],
+    );
+    if (selected != null) setState(() => _sort = selected);
   }
 
   @override
@@ -440,42 +606,55 @@ class _WishlistTabState extends ConsumerState<_WishlistTab> {
             ),
           ),
         ),
-        // Priority filter chips
-        SizedBox(
-          height: 36,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            children: [
-              for (final (label, value) in [
-                ('All', 'all'),
-                ('High', 'high'),
-                ('Medium', 'medium'),
-                ('Low', 'low'),
-              ])
-                Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: ChoiceChip(
-                    label: Text(label,
-                        style: GoogleFonts.jost(
-                          fontSize: 12,
-                          color: _priorityFilter == value
-                              ? Colors.white
-                              : AppColors.ink400,
-                        )),
-                    selected: _priorityFilter == value,
-                    selectedColor: _priorityChipColor(value),
-                    backgroundColor: Colors.white,
-                    side: BorderSide(color: AppColors.parchment200),
-                    onSelected: (_) =>
-                        setState(() => _priorityFilter = value),
-                    showCheckmark: false,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    visualDensity: VisualDensity.compact,
-                  ),
+        // Priority filter chips + sort
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 36,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: [
+                    for (final (label, value) in [
+                      ('All', 'all'),
+                      ('High', 'high'),
+                      ('Medium', 'medium'),
+                      ('Low', 'low'),
+                    ])
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: ChoiceChip(
+                          label: Text(label,
+                              style: GoogleFonts.jost(
+                                fontSize: 12,
+                                color: _priorityFilter == value
+                                    ? Colors.white
+                                    : AppColors.ink400,
+                              )),
+                          selected: _priorityFilter == value,
+                          selectedColor: _priorityChipColor(value),
+                          backgroundColor: Colors.white,
+                          side: BorderSide(color: AppColors.parchment200),
+                          onSelected: (_) =>
+                              setState(() => _priorityFilter = value),
+                          showCheckmark: false,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                  ],
                 ),
-            ],
-          ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.swap_vert, size: 20),
+              color: AppColors.ink400,
+              tooltip: 'Sort: ${_sort.label}',
+              onPressed: _openSortSheet,
+            ),
+            const SizedBox(width: 4),
+          ],
         ),
         const SizedBox(height: 4),
         Expanded(
@@ -509,7 +688,9 @@ class _WishlistTabState extends ConsumerState<_WishlistTab> {
                           size: 48, color: AppColors.ink100),
                       const SizedBox(height: 16),
                       Text(
-                        entries.isEmpty ? 'Your wishlist is empty' : 'No results',
+                        entries.isEmpty
+                            ? 'Your wishlist is empty'
+                            : 'No results',
                         style: GoogleFonts.cormorantGaramond(
                             fontSize: 22, color: AppColors.ink300),
                       ),
@@ -545,10 +726,14 @@ class _WishlistTabState extends ConsumerState<_WishlistTab> {
 
   Color _priorityChipColor(String value) {
     switch (value) {
-      case 'high': return AppColors.clay400;
-      case 'medium': return AppColors.wheat400;
-      case 'low': return AppColors.forest400;
-      default: return AppColors.ink400;
+      case 'high':
+        return AppColors.clay400;
+      case 'medium':
+        return AppColors.wheat400;
+      case 'low':
+        return AppColors.forest400;
+      default:
+        return AppColors.ink400;
     }
   }
 
@@ -654,8 +839,7 @@ class _WishlistItemRow extends StatelessWidget {
           ),
           Expanded(
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -729,7 +913,8 @@ class _WishlistItemRow extends StatelessWidget {
             ),
           ),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, size: 16, color: AppColors.ink200),
+            icon:
+                const Icon(Icons.more_vert, size: 16, color: AppColors.ink200),
             padding: EdgeInsets.zero,
             itemBuilder: (_) => [
               PopupMenuItem(
@@ -757,19 +942,27 @@ class _WishlistItemRow extends StatelessWidget {
 
   String _priorityLabel(String priority) {
     switch (priority) {
-      case 'high': return 'HIGH';
-      case 'medium': return 'MED';
-      case 'low': return 'LOW';
-      default: return priority.toUpperCase();
+      case 'high':
+        return 'HIGH';
+      case 'medium':
+        return 'MED';
+      case 'low':
+        return 'LOW';
+      default:
+        return priority.toUpperCase();
     }
   }
 
   Color _priorityColor(String priority) {
     switch (priority) {
-      case 'high': return AppColors.clay400;
-      case 'medium': return AppColors.wheat400;
-      case 'low': return AppColors.forest400;
-      default: return AppColors.ink300;
+      case 'high':
+        return AppColors.clay400;
+      case 'medium':
+        return AppColors.wheat400;
+      case 'low':
+        return AppColors.forest400;
+      default:
+        return AppColors.ink300;
     }
   }
 
@@ -948,8 +1141,8 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
             style: GoogleFonts.jost(fontSize: 14, color: AppColors.ink500),
             decoration: InputDecoration(
               hintText: 'Find friends by username…',
-              prefixIcon:
-                  const Icon(Icons.person_search, size: 20, color: AppColors.ink200),
+              prefixIcon: const Icon(Icons.person_search,
+                  size: 20, color: AppColors.ink200),
               suffixIcon: _findQuery.isNotEmpty
                   ? IconButton(
                       icon: const Icon(Icons.close, size: 18),
@@ -968,9 +1161,7 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
         Expanded(
           child: RefreshIndicator(
             onRefresh: _load,
-            child: showSearch
-                ? _buildSearchResults()
-                : _buildFriendsList(),
+            child: showSearch ? _buildSearchResults() : _buildFriendsList(),
           ),
         ),
       ],
@@ -1015,8 +1206,7 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
             onPressed: () => _sendRequest(user.id),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.plum400,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
@@ -1171,8 +1361,8 @@ class _FriendRow extends StatelessWidget {
                         color: AppColors.ink600)),
                 Text(
                   subtitle ?? '$totalGames games',
-                  style: GoogleFonts.jost(
-                      fontSize: 12, color: AppColors.ink300),
+                  style:
+                      GoogleFonts.jost(fontSize: 12, color: AppColors.ink300),
                 ),
               ],
             ),

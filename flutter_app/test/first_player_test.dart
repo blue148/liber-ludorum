@@ -4,8 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shake_gesture_platform_interface/shake_gesture_platform_interface.dart';
 
+import 'package:churntern_play/data/services/friend_suggestions_service.dart';
 import 'package:churntern_play/data/services/recent_players_service.dart';
 import 'package:churntern_play/features/game_nite/game_nite_screen.dart';
+import 'package:churntern_play/providers/friend_suggestions_provider.dart';
 import 'package:churntern_play/providers/recent_players_provider.dart';
 
 /// In-memory stand-in for the Supabase-backed recents store, mirroring its
@@ -32,11 +34,25 @@ class InMemoryRecentPlayersStore implements RecentPlayersStore {
   }
 }
 
+/// A fixed stand-in for the friend-suggestions stub, so tests don't need a
+/// real Supabase-backed friends connection.
+class FakeFriendSuggestionsStore implements FriendSuggestionsStore {
+  FakeFriendSuggestionsStore([this._names = const []]);
+  final List<String> _names;
+
+  @override
+  Future<List<String>> load() async => _names;
+}
+
 void main() {
   // A single store per test so recents survive navigating away and back, the
   // way the real per-user backend would.
   late InMemoryRecentPlayersStore store;
-  setUp(() => store = InMemoryRecentPlayersStore());
+  late FakeFriendSuggestionsStore friendsStore;
+  setUp(() {
+    store = InMemoryRecentPlayersStore();
+    friendsStore = FakeFriendSuggestionsStore();
+  });
 
   // The First Player page is reached through go_router, so drive a router that
   // mirrors the real /game-nite/first-player route and override the recents
@@ -58,7 +74,10 @@ void main() {
       ],
     );
     await tester.pumpWidget(ProviderScope(
-      overrides: [recentPlayersStoreProvider.overrideWithValue(store)],
+      overrides: [
+        recentPlayersStoreProvider.overrideWithValue(store),
+        friendSuggestionsStoreProvider.overrideWithValue(friendsStore),
+      ],
       child: MaterialApp.router(routerConfig: router),
     ));
     await tester.tap(find.text('First Player'));
@@ -206,5 +225,45 @@ void main() {
     await tester.tap(find.byIcon(Icons.history));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(ListTile, 'Hopper'), findsOneWidget);
+  });
+
+  testWidgets('friend suggestions appear badged in the quick-select list',
+      (tester) async {
+    friendsStore = FakeFriendSuggestionsStore(['Ada']);
+    await openFirstPlayer(tester);
+
+    // No personal history yet, but a friend suggestion enables the button.
+    expect(
+        tester
+            .widget<IconButton>(find.widgetWithIcon(IconButton, Icons.history))
+            .onPressed,
+        isNotNull);
+
+    await tester.tap(find.byIcon(Icons.history));
+    await tester.pumpAndSettle();
+    expect(find.text('FROM YOUR FRIENDS'), findsOneWidget);
+    expect(find.widgetWithText(ListTile, 'Ada'), findsOneWidget);
+    expect(find.text('Friend'), findsOneWidget);
+
+    // Tapping a friend suggestion adds them to the board like any other name.
+    await tester.tap(find.widgetWithText(ListTile, 'Ada'));
+    await tester.pumpAndSettle();
+    expect(find.text('Ada'), findsOneWidget);
+  });
+
+  testWidgets(
+      'a friend already covered by personal recents is not duplicated',
+      (tester) async {
+    friendsStore = FakeFriendSuggestionsStore(['Hopper']);
+    await openFirstPlayer(tester);
+    await addPlayer(tester, 'Hopper');
+    await tester.tap(find.byIcon(Icons.cancel).first);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.history));
+    await tester.pumpAndSettle();
+    // Hopper shows once under Recent Players, not again under Friends.
+    expect(find.widgetWithText(ListTile, 'Hopper'), findsOneWidget);
+    expect(find.text('FROM YOUR FRIENDS'), findsNothing);
   });
 }

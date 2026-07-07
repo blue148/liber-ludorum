@@ -22,6 +22,9 @@ abstract interface class RecentPlayersStore {
 class RecentPlayersService implements RecentPlayersStore {
   static const _table = 'recent_players';
   static const _max = 30;
+  // "Recent" means used within the last 30 days — older names still exist in
+  // the table but age out of the picker on their own.
+  static const _recentWindow = Duration(days: 30);
 
   String? get _userId => supabase.auth.currentUser?.id;
 
@@ -29,10 +32,12 @@ class RecentPlayersService implements RecentPlayersStore {
   Future<List<String>> load() async {
     final userId = _userId;
     if (userId == null) return const [];
+    final cutoff = DateTime.now().toUtc().subtract(_recentWindow);
     final rows = await supabase
         .from(_table)
         .select('player_name')
         .eq('user_id', userId)
+        .gte('used_at', cutoff.toIso8601String())
         .order('used_at', ascending: false)
         .limit(_max);
     return [for (final r in rows) r['player_name'] as String];

@@ -102,4 +102,17 @@ abstract class FriendsService {
         .order('added_date', ascending: false);
     return data.map((e) => LibraryEntry.fromJson(e)).toList();
   }
+
+  // ── Player name suggestions ────────────────────────────────────────────────
+
+  /// Usernames of friends who've shared a library with [userId] — a stub
+  /// source of quick-select names (e.g. for the Game Nite "First Player"
+  /// picker) until a dedicated "who I play with" concept exists.
+  static Future<List<String>> getConnectedFriendNames(String userId) async {
+    final shared = await getSharedLibraries(userId);
+    return [
+      for (final access in shared)
+        if (access.owner != null) access.owner!.username,
+    ];
+  }
 }

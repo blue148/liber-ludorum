@@ -3,6 +3,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { normalizeGameTypes } from '../_shared/game-type-mapping.ts';
 
 const BGG_API_TOKEN = Deno.env.get('BGG_API_TOKEN');
 const BGG_API_BASE_URL = 'https://boardgamegeek.com/xmlapi2';
@@ -178,7 +179,10 @@ async function parseXmlResponse(xmlText: string, isThingRequest: boolean) {
       min_age: minAgeMatch?.[1] ? parseInt(minAgeMatch[1]) : null,
       game_category: categories.length > 0 ? categories : null,
       game_mechanic: mechanics.length > 0 ? mechanics : null,
-      game_type: families.length > 0 ? families : null,
+      // game_type holds the curated parent game types derived from the raw BGG
+      // mechanics/categories — this is what the apps' "Game Type" filter shows.
+      game_type: normalizeGameTypes(mechanics, categories),
+      // game_family keeps the raw BGG family links for reference.
       game_family: families.length > 0 ? families : null,
       description: descriptionMatch?.[1] ? decodeHtmlEntities(descriptionMatch[1]) : null,
     };

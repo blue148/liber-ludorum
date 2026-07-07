@@ -56,6 +56,7 @@ class LibraryEntry {
     bool? isFavorite,
     bool? forSale,
     String? personalRanking,
+    List<DateTime>? playedDates,
     String? notes,
     VictoryStats? victoryStats,
   }) =>
@@ -67,7 +68,7 @@ class LibraryEntry {
         isFavorite: isFavorite ?? this.isFavorite,
         forSale: forSale ?? this.forSale,
         personalRanking: personalRanking ?? this.personalRanking,
-        playedDates: playedDates,
+        playedDates: playedDates ?? this.playedDates,
         notes: notes ?? this.notes,
         addedDate: addedDate,
         updatedAt: updatedAt,

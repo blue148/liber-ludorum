@@ -12,6 +12,7 @@ class GameCard extends StatelessWidget {
   final GameCardLayout layout;
   final VoidCallback onFavorite;
   final VoidCallback onDelete;
+  final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onLogPlay;
   final VoidCallback? onToggleForSale;
@@ -22,6 +23,7 @@ class GameCard extends StatelessWidget {
     this.layout = GameCardLayout.grid,
     required this.onFavorite,
     required this.onDelete,
+    this.onTap,
     this.onEdit,
     this.onLogPlay,
     this.onToggleForSale,
@@ -30,8 +32,22 @@ class GameCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return layout == GameCardLayout.list
-        ? _ListCard(entry: entry, onFavorite: onFavorite, onDelete: onDelete, onEdit: onEdit, onLogPlay: onLogPlay, onToggleForSale: onToggleForSale)
-        : _GridCard(entry: entry, onFavorite: onFavorite, onDelete: onDelete, onEdit: onEdit, onLogPlay: onLogPlay, onToggleForSale: onToggleForSale);
+        ? _ListCard(
+            entry: entry,
+            onFavorite: onFavorite,
+            onDelete: onDelete,
+            onTap: onTap,
+            onEdit: onEdit,
+            onLogPlay: onLogPlay,
+            onToggleForSale: onToggleForSale)
+        : _GridCard(
+            entry: entry,
+            onFavorite: onFavorite,
+            onDelete: onDelete,
+            onTap: onTap,
+            onEdit: onEdit,
+            onLogPlay: onLogPlay,
+            onToggleForSale: onToggleForSale);
   }
 }
 
@@ -41,6 +57,7 @@ class _GridCard extends StatelessWidget {
   final LibraryEntry entry;
   final VoidCallback onFavorite;
   final VoidCallback onDelete;
+  final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onLogPlay;
   final VoidCallback? onToggleForSale;
@@ -49,6 +66,7 @@ class _GridCard extends StatelessWidget {
     required this.entry,
     required this.onFavorite,
     required this.onDelete,
+    this.onTap,
     this.onEdit,
     this.onLogPlay,
     this.onToggleForSale,
@@ -57,115 +75,143 @@ class _GridCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final game = entry.game;
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.parchment200),
-        borderRadius: BorderRadius.circular(4),
-      ),
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(4),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Cover image — fills available height, info row takes what it needs
-          Expanded(
-            child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  _CoverImage(url: game.coverImage, name: game.name),
-                  // Favorite star — top left
-                  if (entry.isFavorite)
-                    const Positioned(
-                      top: 6, left: 6,
-                      child: Icon(Icons.star, size: 14, color: AppColors.wheat400),
-                    ),
-                  // For sale badge — top right
-                  if (entry.forSale)
-                    Positioned(
-                      top: 6, right: 6,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                        color: AppColors.forest600,
-                        child: Text(
-                          'SALE',
-                          style: GoogleFonts.jost(fontSize: 8, color: Colors.white, letterSpacing: 1),
-                        ),
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.parchment200),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Cover image — fills available height, info row takes what it needs
+              Expanded(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _CoverImage(url: game.coverImage, name: game.name),
+                    // Favorite star — top left
+                    if (entry.isFavorite)
+                      const Positioned(
+                        top: 6,
+                        left: 6,
+                        child: Icon(Icons.star,
+                            size: 14, color: AppColors.wheat400),
                       ),
-                    ),
-                  // Play count — bottom right
-                  if (entry.playCount > 0)
-                    Positioned(
-                      bottom: 6, right: 6,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.65),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '${entry.playCount}×',
-                          style: GoogleFonts.jost(
-                            fontSize: 9,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
+                    // For sale badge — top right
+                    if (entry.forSale)
+                      Positioned(
+                        top: 6,
+                        right: 6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 2),
+                          color: AppColors.forest600,
+                          child: Text(
+                            'SALE',
+                            style: GoogleFonts.jost(
+                                fontSize: 8,
+                                color: Colors.white,
+                                letterSpacing: 1),
                           ),
                         ),
                       ),
-                    ),
-                ],
-              ),
-            ),
-
-          // Info row
-          Padding(
-            padding: const EdgeInsets.fromLTRB(6, 6, 2, 6),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        game.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.jost(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.ink600,
-                          height: 1.3,
+                    // Play count — bottom right
+                    if (entry.playCount > 0)
+                      Positioned(
+                        bottom: 6,
+                        right: 6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.65),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${entry.playCount}×',
+                            style: GoogleFonts.jost(
+                              fontSize: 9,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Row(
+                  ],
+                ),
+              ),
+
+              // Info row
+              Padding(
+                padding: const EdgeInsets.fromLTRB(6, 6, 2, 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (game.playerCountLabel.isNotEmpty) ...[
-                            const Icon(Icons.people_outline, size: 10, color: AppColors.ink200),
-                            const SizedBox(width: 2),
-                            Text(game.playerCountLabel, style: GoogleFonts.jost(fontSize: 9, color: AppColors.ink200)),
-                            const SizedBox(width: 6),
-                          ],
-                          if (game.playtimeMinutes != null) ...[
-                            const Icon(Icons.timer_outlined, size: 10, color: AppColors.ink200),
-                            const SizedBox(width: 2),
-                            Text('${game.playtimeMinutes}m', style: GoogleFonts.jost(fontSize: 9, color: AppColors.ink200)),
-                          ],
-                          if (entry.hasVictoryStats)
-                            const Padding(
-                              padding: EdgeInsets.only(left: 4),
-                              child: Icon(Icons.emoji_events_outlined, size: 10, color: AppColors.wheat400),
+                          Text(
+                            game.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.jost(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.ink600,
+                              height: 1.3,
                             ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              if (game.playerCountLabel.isNotEmpty) ...[
+                                const Icon(Icons.people_outline,
+                                    size: 10, color: AppColors.ink200),
+                                const SizedBox(width: 2),
+                                Text(game.playerCountLabel,
+                                    style: GoogleFonts.jost(
+                                        fontSize: 9, color: AppColors.ink200)),
+                                const SizedBox(width: 6),
+                              ],
+                              if (game.playtimeMinutes != null) ...[
+                                const Icon(Icons.timer_outlined,
+                                    size: 10, color: AppColors.ink200),
+                                const SizedBox(width: 2),
+                                Text('${game.playtimeMinutes}m',
+                                    style: GoogleFonts.jost(
+                                        fontSize: 9, color: AppColors.ink200)),
+                              ],
+                              if (entry.hasVictoryStats)
+                                const Padding(
+                                  padding: EdgeInsets.only(left: 4),
+                                  child: Icon(Icons.emoji_events_outlined,
+                                      size: 10, color: AppColors.wheat400),
+                                ),
+                            ],
+                          ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                    _MenuButton(
+                        entry: entry,
+                        onFavorite: onFavorite,
+                        onDelete: onDelete,
+                        onEdit: onEdit,
+                        onLogPlay: onLogPlay,
+                        onToggleForSale: onToggleForSale),
+                  ],
                 ),
-                _MenuButton(entry: entry, onFavorite: onFavorite, onDelete: onDelete, onEdit: onEdit, onLogPlay: onLogPlay, onToggleForSale: onToggleForSale),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -177,6 +223,7 @@ class _ListCard extends StatelessWidget {
   final LibraryEntry entry;
   final VoidCallback onFavorite;
   final VoidCallback onDelete;
+  final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onLogPlay;
   final VoidCallback? onToggleForSale;
@@ -185,6 +232,7 @@ class _ListCard extends StatelessWidget {
     required this.entry,
     required this.onFavorite,
     required this.onDelete,
+    this.onTap,
     this.onEdit,
     this.onLogPlay,
     this.onToggleForSale,
@@ -193,115 +241,136 @@ class _ListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final game = entry.game;
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.parchment200),
-        borderRadius: BorderRadius.circular(4),
-      ),
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(4),
       clipBehavior: Clip.antiAlias,
-      child: Row(
-        children: [
-          // Thumbnail
-          SizedBox(
-            width: 72,
-            height: 72,
-            child: _CoverImage(url: game.coverImage, name: game.name),
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.parchment200),
+            borderRadius: BorderRadius.circular(4),
           ),
+          child: Row(
+            children: [
+              // Thumbnail
+              SizedBox(
+                width: 72,
+                height: 72,
+                child: _CoverImage(url: game.coverImage, name: game.name),
+              ),
 
-          // Info
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+              // Info
+              Expanded(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          game.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.jost(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.ink600,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              game.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.jost(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.ink600,
+                              ),
+                            ),
                           ),
-                        ),
+                          if (game.isExpansion)
+                            Container(
+                              margin: const EdgeInsets.only(left: 6),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 5, vertical: 2),
+                              decoration: BoxDecoration(
+                                border:
+                                    Border.all(color: AppColors.parchment300),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                              child: Text('EXP',
+                                  style: GoogleFonts.jost(
+                                      fontSize: 9, color: AppColors.ink300)),
+                            ),
+                        ],
                       ),
-                      if (game.isExpansion)
-                        Container(
-                          margin: const EdgeInsets.only(left: 6),
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: AppColors.parchment300),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                          child: Text('EXP', style: GoogleFonts.jost(fontSize: 9, color: AppColors.ink300)),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      if (game.playerCountLabel.isNotEmpty) ...[
-                        const Icon(Icons.people_outline, size: 12, color: AppColors.ink200),
-                        const SizedBox(width: 3),
-                        Text(game.playerCountLabel, style: GoogleFonts.jost(fontSize: 11, color: AppColors.ink300)),
-                        const SizedBox(width: 10),
-                      ],
-                      if (game.playtimeMinutes != null) ...[
-                        const Icon(Icons.timer_outlined, size: 12, color: AppColors.ink200),
-                        const SizedBox(width: 3),
-                        Text('${game.playtimeMinutes} min', style: GoogleFonts.jost(fontSize: 11, color: AppColors.ink300)),
-                      ],
-                    ],
-                  ),
-                  if (entry.hasVictoryStats) ...[
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.emoji_events_outlined, size: 12, color: AppColors.wheat400),
-                        const SizedBox(width: 3),
-                        Text(
-                          '${entry.victoryStats!.winRate.toStringAsFixed(0)}% win rate',
-                          style: GoogleFonts.jost(fontSize: 11, color: AppColors.wheat500),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          if (game.playerCountLabel.isNotEmpty) ...[
+                            const Icon(Icons.people_outline,
+                                size: 12, color: AppColors.ink200),
+                            const SizedBox(width: 3),
+                            Text(game.playerCountLabel,
+                                style: GoogleFonts.jost(
+                                    fontSize: 11, color: AppColors.ink300)),
+                            const SizedBox(width: 10),
+                          ],
+                          if (game.playtimeMinutes != null) ...[
+                            const Icon(Icons.timer_outlined,
+                                size: 12, color: AppColors.ink200),
+                            const SizedBox(width: 3),
+                            Text('${game.playtimeMinutes} min',
+                                style: GoogleFonts.jost(
+                                    fontSize: 11, color: AppColors.ink300)),
+                          ],
+                        ],
+                      ),
+                      if (entry.hasVictoryStats) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.emoji_events_outlined,
+                                size: 12, color: AppColors.wheat400),
+                            const SizedBox(width: 3),
+                            Text(
+                              '${entry.victoryStats!.winRate.toStringAsFixed(0)}% win rate',
+                              style: GoogleFonts.jost(
+                                  fontSize: 11, color: AppColors.wheat500),
+                            ),
+                          ],
                         ),
                       ],
+                    ],
+                  ),
+                ),
+              ),
+
+              // Actions
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      entry.isFavorite ? Icons.star : Icons.star_border,
+                      size: 18,
+                      color: entry.isFavorite
+                          ? AppColors.wheat400
+                          : AppColors.ink200,
                     ),
-                  ],
+                    onPressed: onFavorite,
+                    padding: const EdgeInsets.all(8),
+                    constraints: const BoxConstraints(),
+                  ),
+                  _MenuButton(
+                    entry: entry,
+                    onFavorite: onFavorite,
+                    onDelete: onDelete,
+                    onEdit: onEdit,
+                    onLogPlay: onLogPlay,
+                    onToggleForSale: onToggleForSale,
+                  ),
                 ],
               ),
-            ),
-          ),
-
-          // Actions
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: Icon(
-                  entry.isFavorite ? Icons.star : Icons.star_border,
-                  size: 18,
-                  color: entry.isFavorite ? AppColors.wheat400 : AppColors.ink200,
-                ),
-                onPressed: onFavorite,
-                padding: const EdgeInsets.all(8),
-                constraints: const BoxConstraints(),
-              ),
-              _MenuButton(
-                entry: entry,
-                onFavorite: onFavorite,
-                onDelete: onDelete,
-                onEdit: onEdit,
-                onLogPlay: onLogPlay,
-                onToggleForSale: onToggleForSale,
-              ),
+              const SizedBox(width: 4),
             ],
           ),
-          const SizedBox(width: 4),
-        ],
+        ),
       ),
     );
   }
@@ -321,7 +390,8 @@ class _CoverImage extends StatelessWidget {
       return Container(
         color: AppColors.parchment100,
         child: const Center(
-          child: Icon(Icons.menu_book_outlined, size: 28, color: AppColors.ink100),
+          child:
+              Icon(Icons.menu_book_outlined, size: 28, color: AppColors.ink100),
         ),
       );
     }
@@ -361,7 +431,8 @@ class _MenuButton extends StatelessWidget {
       padding: EdgeInsets.zero,
       itemBuilder: (_) => [
         if (onEdit != null)
-          PopupMenuItem(value: 'edit', child: _menuItem(Icons.edit_outlined, 'Edit')),
+          PopupMenuItem(
+              value: 'edit', child: _menuItem(Icons.edit_outlined, 'Edit')),
         PopupMenuItem(
           value: 'favorite',
           child: _menuItem(
@@ -372,7 +443,8 @@ class _MenuButton extends StatelessWidget {
         if (onLogPlay != null)
           PopupMenuItem(
             value: 'log',
-            child: _menuItem(Icons.add_circle_outline, 'Log Play (${entry.playCount})'),
+            child: _menuItem(
+                Icons.add_circle_outline, 'Log Play (${entry.playCount})'),
           ),
         if (onToggleForSale != null)
           PopupMenuItem(
@@ -385,16 +457,22 @@ class _MenuButton extends StatelessWidget {
         const PopupMenuDivider(),
         PopupMenuItem(
           value: 'delete',
-          child: _menuItem(Icons.delete_outline, 'Remove', color: AppColors.clay500),
+          child: _menuItem(Icons.delete_outline, 'Remove',
+              color: AppColors.clay500),
         ),
       ],
       onSelected: (action) {
         switch (action) {
-          case 'edit': onEdit?.call();
-          case 'favorite': onFavorite();
-          case 'log': onLogPlay?.call();
-          case 'sale': onToggleForSale?.call();
-          case 'delete': onDelete();
+          case 'edit':
+            onEdit?.call();
+          case 'favorite':
+            onFavorite();
+          case 'log':
+            onLogPlay?.call();
+          case 'sale':
+            onToggleForSale?.call();
+          case 'delete':
+            onDelete();
         }
       },
     );
@@ -406,7 +484,8 @@ class _MenuButton extends StatelessWidget {
           const SizedBox(width: 10),
           Text(
             label,
-            style: GoogleFonts.jost(fontSize: 13, color: color ?? AppColors.ink500),
+            style: GoogleFonts.jost(
+                fontSize: 13, color: color ?? AppColors.ink500),
           ),
         ],
       );

@@ -13,9 +13,11 @@ import '../../core/theme/app_colors.dart';
 import '../../data/models/friend.dart';
 import '../../data/models/game.dart';
 import '../../data/models/library_entry.dart';
+import '../../data/services/friend_suggestions_service.dart';
 import '../../data/services/friends_service.dart';
 import '../../data/services/recent_players_service.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/friend_suggestions_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/recent_players_provider.dart';
 
@@ -1032,10 +1034,16 @@ class _FirstPlayerPageState extends ConsumerState<FirstPlayerPage>
   final _focus = FocusNode();
   late final RecentPlayersStore _recentsService =
       ref.read(recentPlayersStoreProvider);
+  late final FriendSuggestionsStore _friendsStore =
+      ref.read(friendSuggestionsStoreProvider);
   var _nextId = 0;
 
   // Previously-used names, most-recent first, for quick re-adding.
   List<String> _recents = const [];
+
+  // Usernames of friends who've shared their library — surfaced as quick-add
+  // suggestions alongside recents, badged so they're clearly distinct.
+  List<String> _friendNames = const [];
 
   late final AnimationController _flip;
   late final AnimationController _shuffle;
@@ -1062,14 +1070,26 @@ class _FirstPlayerPageState extends ConsumerState<FirstPlayerPage>
         vsync: this, duration: const Duration(milliseconds: 620));
     _anim = Listenable.merge([_flip, _shuffle, _reveal]);
     _loadRecents();
+    _loadFriendNames();
   }
 
   Future<void> _loadRecents() async {
     try {
       final recents = await _recentsService.load();
       if (mounted) setState(() => _recents = recents);
-    } catch (_) {
+    } catch (e) {
       // Recents are a convenience — a backend hiccup just leaves them empty.
+      debugPrint('First Player: failed to load recent players: $e');
+    }
+  }
+
+  Future<void> _loadFriendNames() async {
+    try {
+      final names = await _friendsStore.load();
+      if (mounted) setState(() => _friendNames = names);
+    } catch (e) {
+      // Friend suggestions are best-effort; leave empty on failure.
+      debugPrint('First Player: failed to load friend suggestions: $e');
     }
   }
 
@@ -1116,8 +1136,9 @@ class _FirstPlayerPageState extends ConsumerState<FirstPlayerPage>
     try {
       final updated = await _recentsService.add(trimmed);
       if (mounted) setState(() => _recents = updated);
-    } catch (_) {
+    } catch (e) {
       // The player is already on the board; only the saved history missed out.
+      debugPrint('First Player: failed to save recent player "$trimmed": $e');
     }
   }
 
@@ -1125,8 +1146,9 @@ class _FirstPlayerPageState extends ConsumerState<FirstPlayerPage>
     try {
       final updated = await _recentsService.remove(name);
       if (mounted) setState(() => _recents = updated);
-    } catch (_) {
+    } catch (e) {
       // Leave the recents list as-is if the delete didn't reach the backend.
+      debugPrint('First Player: failed to forget recent player "$name": $e');
     }
   }
 
@@ -1135,6 +1157,22 @@ class _FirstPlayerPageState extends ConsumerState<FirstPlayerPage>
     final inPlay = _players.map((p) => p.name.toLowerCase()).toSet();
     return _recents.where((n) => !inPlay.contains(n.toLowerCase())).toList();
   }
+
+  /// Friend suggestions not already on the board or already covered by
+  /// personal recents.
+  List<String> get _availableFriends {
+    final inPlay = _players.map((p) => p.name.toLowerCase()).toSet();
+    final personal = _recents.map((n) => n.toLowerCase()).toSet();
+    return _friendNames
+        .where((n) =>
+            !inPlay.contains(n.toLowerCase()) &&
+            !personal.contains(n.toLowerCase()))
+        .toList();
+  }
+
+  /// True once neither section has anything left to offer — closes the sheet.
+  bool get _quickSelectExhausted =>
+      _availableRecents.isEmpty && _availableFriends.isEmpty;
 
   void _showRecents() {
     _focus.unfocus();
@@ -1146,23 +1184,16 @@ class _FirstPlayerPageState extends ConsumerState<FirstPlayerPage>
         // the sheet stays open for adding several at once.
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            final names = _availableRecents;
+            final recentNames = _availableRecents;
+            final friendNames = _availableFriends;
             return SafeArea(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-                    child: Text('RECENT PLAYERS',
-                        style: GoogleFonts.jost(
-                            fontSize: 11,
-                            letterSpacing: 1.5,
-                            color: AppColors.ink400)),
-                  ),
-                  if (names.isEmpty)
+                  if (recentNames.isEmpty && friendNames.isEmpty)
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
                       child: Text('No recent players to add',
                           style: GoogleFonts.jost(
                               fontSize: 14, color: AppColors.ink300)),
@@ -1172,33 +1203,77 @@ class _FirstPlayerPageState extends ConsumerState<FirstPlayerPage>
                       child: ListView(
                         shrinkWrap: true,
                         children: [
-                          for (final name in names)
-                            ListTile(
-                              leading: const Icon(Icons.person_outline,
-                                  color: AppColors.clay300),
-                              title: Text(name,
-                                  style: GoogleFonts.jost(fontSize: 15)),
-                              trailing: IconButton(
-                                tooltip: 'Forget',
-                                icon: const Icon(Icons.close,
-                                    size: 18, color: AppColors.ink200),
-                                onPressed: () async {
-                                  await _forgetRecent(name);
-                                  if (!sheetContext.mounted) return;
+                          if (recentNames.isNotEmpty) ...[
+                            Padding(
+                              padding:
+                                  const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                              child: Text('RECENT PLAYERS',
+                                  style: GoogleFonts.jost(
+                                      fontSize: 11,
+                                      letterSpacing: 1.5,
+                                      color: AppColors.ink400)),
+                            ),
+                            for (final name in recentNames)
+                              ListTile(
+                                leading: const Icon(Icons.person_outline,
+                                    color: AppColors.clay300),
+                                title: Text(name,
+                                    style: GoogleFonts.jost(fontSize: 15)),
+                                trailing: IconButton(
+                                  tooltip: 'Forget',
+                                  icon: const Icon(Icons.close,
+                                      size: 18, color: AppColors.ink200),
+                                  onPressed: () async {
+                                    await _forgetRecent(name);
+                                    if (!sheetContext.mounted) return;
+                                    setSheetState(() {});
+                                    if (_quickSelectExhausted) {
+                                      Navigator.pop(sheetContext);
+                                    }
+                                  },
+                                ),
+                                onTap: () {
+                                  _commitPlayer(name);
                                   setSheetState(() {});
-                                  if (_availableRecents.isEmpty) {
+                                  if (_quickSelectExhausted) {
                                     Navigator.pop(sheetContext);
                                   }
                                 },
                               ),
-                              onTap: () {
-                                _commitPlayer(name);
-                                setSheetState(() {});
-                                if (_availableRecents.isEmpty) {
-                                  Navigator.pop(sheetContext);
-                                }
-                              },
+                          ],
+                          if (friendNames.isNotEmpty) ...[
+                            Padding(
+                              padding:
+                                  const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                              child: Text('FROM YOUR FRIENDS',
+                                  style: GoogleFonts.jost(
+                                      fontSize: 11,
+                                      letterSpacing: 1.5,
+                                      color: AppColors.ink400)),
                             ),
+                            for (final name in friendNames)
+                              ListTile(
+                                leading: const Icon(Icons.group_outlined,
+                                    color: AppColors.plum400),
+                                title: Text(name,
+                                    style: GoogleFonts.jost(fontSize: 15)),
+                                trailing: Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 4),
+                                  child: Text('Friend',
+                                      style: GoogleFonts.jost(
+                                          fontSize: 11,
+                                          color: AppColors.plum400)),
+                                ),
+                                onTap: () {
+                                  _commitPlayer(name);
+                                  setSheetState(() {});
+                                  if (_quickSelectExhausted) {
+                                    Navigator.pop(sheetContext);
+                                  }
+                                },
+                              ),
+                          ],
                         ],
                       ),
                     ),
@@ -1323,7 +1398,7 @@ class _FirstPlayerPageState extends ConsumerState<FirstPlayerPage>
                 const SizedBox(width: 8),
                 IconButton.filledTonal(
                   tooltip: 'Recent players',
-                  onPressed: enabled && _availableRecents.isNotEmpty
+                  onPressed: enabled && !_quickSelectExhausted
                       ? _showRecents
                       : null,
                   icon: const Icon(Icons.history),

@@ -163,9 +163,7 @@ class _MostPlayed extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final played = entries
-        .where((e) => e.playCount > 0)
-        .toList()
+    final played = entries.where((e) => e.playCount > 0).toList()
       ..sort((a, b) => b.playCount.compareTo(a.playCount));
 
     if (played.isEmpty) return const SizedBox.shrink();
@@ -184,60 +182,63 @@ class _MostPlayed extends StatelessWidget {
             separatorBuilder: (_, __) => const SizedBox(width: 8),
             itemBuilder: (_, i) {
               final entry = top[i];
-              return SizedBox(
-                width: 76,
-                child: Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: entry.game.coverImage != null
-                          ? CachedNetworkImage(
-                              imageUrl: entry.game.coverImage!,
-                              width: 76,
-                              height: 100,
-                              fit: BoxFit.cover,
-                            )
-                          : Container(
-                              width: 76,
-                              height: 100,
-                              color: AppColors.parchment100,
-                              child: const Icon(Icons.menu_book_outlined,
-                                  color: AppColors.ink100),
+              return GestureDetector(
+                onTap: () => context.push('/game/${entry.id}', extra: entry),
+                child: SizedBox(
+                  width: 76,
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: entry.game.coverImage != null
+                            ? CachedNetworkImage(
+                                imageUrl: entry.game.coverImage!,
+                                width: 76,
+                                height: 100,
+                                fit: BoxFit.cover,
+                              )
+                            : Container(
+                                width: 76,
+                                height: 100,
+                                color: AppColors.parchment100,
+                                child: const Icon(Icons.menu_book_outlined,
+                                    color: AppColors.ink100),
+                              ),
+                      ),
+                      Positioned(
+                        bottom: 14,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.clay400,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${entry.playCount}×',
+                            style: GoogleFonts.jost(
+                              fontSize: 9,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
                             ),
-                    ),
-                    Positioned(
-                      bottom: 14,
-                      right: 4,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 5, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.clay400,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '${entry.playCount}×',
-                          style: GoogleFonts.jost(
-                            fontSize: 9,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: Text(
-                        entry.game.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.jost(
-                            fontSize: 9, color: AppColors.ink400),
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Text(
+                          entry.game.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.jost(
+                              fontSize: 9, color: AppColors.ink400),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },
@@ -369,58 +370,66 @@ class _RecentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 1),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.parchment200),
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(4),
+      child: InkWell(
         borderRadius: BorderRadius.circular(4),
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius:
-                const BorderRadius.horizontal(left: Radius.circular(4)),
-            child: entry.game.coverImage != null
-                ? CachedNetworkImage(
-                    imageUrl: entry.game.coverImage!,
-                    width: 48,
-                    height: 48,
-                    fit: BoxFit.cover,
-                  )
-                : Container(
-                    width: 48,
-                    height: 48,
-                    color: AppColors.parchment100,
-                    child: const Icon(Icons.menu_book_outlined,
-                        size: 20, color: AppColors.ink100),
-                  ),
+        onTap: () => context.push('/game/${entry.id}', extra: entry),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 1),
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.parchment200),
+            borderRadius: BorderRadius.circular(4),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  entry.game.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.jost(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.ink600),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius:
+                    const BorderRadius.horizontal(left: Radius.circular(4)),
+                child: entry.game.coverImage != null
+                    ? CachedNetworkImage(
+                        imageUrl: entry.game.coverImage!,
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.cover,
+                      )
+                    : Container(
+                        width: 48,
+                        height: 48,
+                        color: AppColors.parchment100,
+                        child: const Icon(Icons.menu_book_outlined,
+                            size: 20, color: AppColors.ink100),
+                      ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.game.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.jost(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.ink600),
+                    ),
+                    Text(
+                      _timeAgo(entry.addedDate),
+                      style: GoogleFonts.jost(
+                          fontSize: 12, color: AppColors.ink200),
+                    ),
+                  ],
                 ),
-                Text(
-                  _timeAgo(entry.addedDate),
-                  style: GoogleFonts.jost(
-                      fontSize: 12, color: AppColors.ink200),
-                ),
-              ],
-            ),
+              ),
+              const Icon(Icons.chevron_right,
+                  color: AppColors.ink100, size: 20),
+              const SizedBox(width: 8),
+            ],
           ),
-          const Icon(Icons.chevron_right, color: AppColors.ink100, size: 20),
-          const SizedBox(width: 8),
-        ],
+        ),
       ),
     );
   }
